@@ -44,3 +44,4 @@
 "./Core/Src/dma2d_validation.o"
 "./Core/Src/adc_capture.o"
 "./Core/Src/adc_validation.o"
+"./Core/Src/scope_view.o"

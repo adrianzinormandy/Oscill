@@ -14,10 +14,10 @@
 #define AC_SDCLK_ESTIMATE_HZ 81300000U
 #define AC_SAMPLE_TIME_CYCLES 56U
 #define AC_TEST_RATE_COUNT 4U
-/* 1: all digital rate tests + static 63 s load; 2: one 10 kSPS DC/signal capture.
- * Physical input is prepared and measured before a phase-2 reset/flash. */
+/* 1: digital + static load; 2: physical checkpoint; 3: live LCD + 63 s G2.
+ * Physical input is prepared and measured before reset/flash. */
 #ifndef ADC_CAPTURE_TEST_PHASE
-#define ADC_CAPTURE_TEST_PHASE 2U
+#define ADC_CAPTURE_TEST_PHASE 3U
 #endif
 typedef enum { AC_NOT_STARTED=0, AC_RUNNING=1, AC_DIGITAL_PASS=2, AC_FAIL=3 } AC_State;
 typedef enum { AC_OK=0, AC_CONFIG=1, AC_DMA_ERROR=2, AC_OVERRUN=3,

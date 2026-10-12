@@ -12,6 +12,7 @@ C_SRCS += \
 ../Core/Src/dma2d_validation.c \
 ../Core/Src/adc_capture.c \
 ../Core/Src/adc_validation.c \
+../Core/Src/scope_view.c \
 ../Core/Src/stm32f4xx_hal_msp.c \
 ../Core/Src/stm32f4xx_hal_timebase_tim.c \
 ../Core/Src/stm32f4xx_it.c \
@@ -27,6 +28,7 @@ OBJS += \
 ./Core/Src/dma2d_validation.o \
 ./Core/Src/adc_capture.o \
 ./Core/Src/adc_validation.o \
+./Core/Src/scope_view.o \
 ./Core/Src/stm32f4xx_hal_msp.o \
 ./Core/Src/stm32f4xx_hal_timebase_tim.o \
 ./Core/Src/stm32f4xx_it.o \
@@ -42,6 +44,7 @@ C_DEPS += \
 ./Core/Src/dma2d_validation.d \
 ./Core/Src/adc_capture.d \
 ./Core/Src/adc_validation.d \
+./Core/Src/scope_view.d \
 ./Core/Src/stm32f4xx_hal_msp.d \
 ./Core/Src/stm32f4xx_hal_timebase_tim.d \
 ./Core/Src/stm32f4xx_it.d \
@@ -64,5 +67,7 @@ clean-Core-2f-Src:
 
 
 	-$(RM) ./Core/Src/adc_capture.o ./Core/Src/adc_capture.d ./Core/Src/adc_capture.su ./Core/Src/adc_capture.cyclo ./Core/Src/adc_validation.o ./Core/Src/adc_validation.d ./Core/Src/adc_validation.su ./Core/Src/adc_validation.cyclo
+
+	-$(RM) ./Core/Src/scope_view.o ./Core/Src/scope_view.d ./Core/Src/scope_view.su ./Core/Src/scope_view.cyclo
 
 .PHONY: clean-Core-2f-Src
