@@ -1,7 +1,7 @@
 {
   "base_git_commit": "6494081d8034bd38a94f9c61ce5dbb2f05917543",
   "digital_elf_sha256": "1105DFC4367D7894D96B0943931A4CB0CFEC1F166AC328EE2E26C2D800B6BE2D",
-  "phase2_built_not_flashed_sha256": "BC1518939B079FF3E014C61B13596DDA62AB7C43B5CB54775C7577FF46B68ECC",
+  "phase2_dc_flashed_sha256": "BC1518939B079FF3E014C61B13596DDA62AB7C43B5CB54775C7577FF46B68ECC",
   "operator_measurements": {
     "PA5_GND_V": 0.0,
     "VDDA_V": 2.97,
@@ -10,7 +10,20 @@
       48.6,
       48.8
     ],
-    "PG13_corrected_P1_29_confirmation": "pending"
+    "PG13_corrected_P1_29_confirmation": "confirmed by operator",
+    "DC_source": "Hantek built-in generator, DC mode, offset 1.5 V",
+    "DC_source_Fluke_V": 1.501,
+    "DC_source_Hantek_CH1_V": 1.5,
+    "DC_source_Hantek_Vmin_V": 1.44,
+    "DC_source_Hantek_Vmax_V": 1.56,
+    "DC_PA5_connected_Fluke_V": 1.501,
+    "DC_PA5_after_first_capture_Fluke_V": 1.501,
+    "VREF_after_first_capture_Fluke_V": 2.99,
+    "VREF_during_DC_RESET_capture_Fluke_V_range": [
+      2.991,
+      2.994
+    ]
   },
-  "state": "digital pass; task8 incomplete; waiting for intermediate DC source measurements"
+  "state": "digital integrity pass; two DC captures recorded; amplitude comparison unresolved; waiting for PA5 measurement during active capture; task8 incomplete",
+  "implementation_git_commit": "4730acca01a8d0d587ff255257eb650440a691cf"
 }
