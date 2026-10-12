@@ -22,8 +22,14 @@
     "VREF_during_DC_RESET_capture_Fluke_V_range": [
       2.991,
       2.994
-    ]
+    ],
+    "PA5_during_DC_INPUT_capture_Fluke_V": 1.501,
+    "PA5_after_DC_INPUT_capture_Fluke_V": 1.501
   },
-  "state": "digital integrity pass; two DC captures recorded; amplitude comparison unresolved; waiting for PA5 measurement during active capture; task8 incomplete",
-  "implementation_git_commit": "4730acca01a8d0d587ff255257eb650440a691cf"
+  "state": "digital integrity pass; three DC captures recorded; DC accepted for demonstration with accuracy limitations; preparing E1 sine 100 Hz; task8 incomplete",
+  "implementation_git_commit": "4730acca01a8d0d587ff255257eb650440a691cf",
+  "operator_decisions": {
+    "DC_accuracy": "accept observed bias and noise as demonstration limitations; do not pursue precision; no calibration applied",
+    "ground_check": "operator reports common grounds; differential VSSA measurement not performed"
+  }
 }
