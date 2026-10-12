@@ -1,0 +1,33 @@
+{
+  "samples": 2048,
+  "min_code": 595,
+  "max_code": 3461,
+  "mean_code": 2052.09033203125,
+  "rms_ac_code": 1384.813120269516,
+  "rms_total_code": 2475.63771761676,
+  "peak_to_peak_code": 2866,
+  "rising_crossings": 20,
+  "hysteresis_code": 143.3,
+  "period_samples": 99.68418325321234,
+  "period_cv": 0.004669933585629686,
+  "periodic_estimate_valid": true,
+  "fs_argument_hz": 9973.76,
+  "vref_argument_v": 2.993,
+  "frequency_estimate_hz": 100.05358598028734,
+  "note": "Simple crossing estimate, not proof of sample continuity or calibrated amplitude",
+  "min_v_estimate": 0.434774169921875,
+  "max_v_estimate": 2.528997314453125,
+  "mean_v_estimate": 1.4994888583421706,
+  "rms_ac_v_estimate": 1.0119007980875638,
+  "rms_total_v_estimate": 1.8089803927800199,
+  "peak_to_peak_v_estimate": 2.09422314453125,
+  "fs_hz_range_from_E2_PG13": [
+    9953.28,
+    9994.24
+  ],
+  "frequency_hz_range_from_E2_PG13": [
+    99.8481371384387,
+    100.25903482213597
+  ],
+  "fs_source": "Previous E2 PG13 measurement, same TIM2 configuration; no new PG13 measurement during E3"
+}

@@ -68,9 +68,28 @@
         9953.28,
         9994.24
       ]
+    },
+    "E3_preconnection": {
+      "source": "Hantek square 100 Hz, duty 50%, 2 Vpp, +1.5 V offset",
+      "frequency_hz": 100,
+      "vmin_v_range": [
+        0.4,
+        0.44
+      ],
+      "vtop_v": 2.52,
+      "rms_v_range": [
+        1.79,
+        1.81
+      ],
+      "vmax_v": null,
+      "state": "Vmax confirmed; operator performed connection and RESET; E3 capture recorded",
+      "vmax_v_range": [
+        2.52,
+        2.6
+      ]
     }
   },
-  "state": "E1 and E2 sine captures recorded; Fs at 10 kSPS mode confirmed with PG13 marker; digital integrity pass; preparing E3 square 100 Hz; task8 incomplete",
+  "state": "E1/E2/E3 recorded; digital integrity pass; preparing E4 square 1 kHz; task8 incomplete",
   "implementation_git_commit": "4730acca01a8d0d587ff255257eb650440a691cf",
   "operator_decisions": {
     "DC_accuracy": "accept observed bias and noise as demonstration limitations; do not pursue precision; no calibration applied",
