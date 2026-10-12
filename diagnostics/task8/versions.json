@@ -111,7 +111,7 @@
       "connection_ready": "confirmed by operator"
     }
   },
-  "state": "RESET and G2 passed; expected square differs from sine-like actual snapshot; waiting for direct PA5 waveform measurement; power-cycle pending",
+  "state": "Capture, sine/square LCD, input change, G2 and RESET confirmed; power-cycle pending; task8 incomplete",
   "implementation_git_commit": "4730acca01a8d0d587ff255257eb650440a691cf",
   "operator_decisions": {
     "DC_accuracy": "accept observed bias and noise as demonstration limitations; do not pursue precision; no calibration applied",
@@ -139,7 +139,8 @@
     "g2": "6054 processed blocks, 941 frames, no registered ADC/DMA/LTDC/DMA2D errors; 63002 HAL ticks",
     "operator_PG13_hz": 48.73,
     "Fs_measured_hz": 99799.04,
-    "operator_square_lcd": "operator reported expected display; subsequent snapshot showed smooth sine-like 1k signal, square LCD not accepted pending direct PA5 measurement",
-    "reset": "operator confirmed B2 launch; new G2 no registered errors, 6054 processed blocks, 941 frames"
+    "operator_square_lcd": "confirmed after actual Square selection; raw snapshot has plateaus, RMS AC 1382.369 codes, frequency 999.992 Hz",
+    "reset": "operator confirmed B2 launch; new G2 no registered errors, 6054 processed blocks, 941 frames",
+    "square_source_issue": "operator confirmed generator was still sine, then switched to square; code unchanged"
   }
 }
