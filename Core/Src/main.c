@@ -18,11 +18,12 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "usb_host.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "sdram.h"
+#include "lcd.h"
+#include "dma2d_graphics.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -32,7 +33,11 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+/* LCD mode excludes the destructive SDRAM test and all unrelated peripherals.
+ * CubeMX preserves this flag and the FMC USER hook, but regenerates the
+ * guarded MX calls below: reapply/review those guards after code generation.
+ */
+#define SDRAM_DIAGNOSTIC_ONLY (!LCD_DIAGNOSTIC_ENABLE)
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -71,11 +76,10 @@ static void MX_CRC_Init(void);
 static void MX_DMA2D_Init(void);
 static void MX_FMC_Init(void);
 static void MX_I2C3_Init(void);
-static void MX_LTDC_Init(void);
-static void MX_SPI5_Init(void);
+static HAL_StatusTypeDef MX_LTDC_Init(void);
+static HAL_StatusTypeDef MX_SPI5_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_USART1_UART_Init(void);
-void MX_USB_HOST_Process(void);
 
 /* USER CODE BEGIN PFP */
 
@@ -115,18 +119,46 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_ADC1_Init();
-  MX_CRC_Init();
-  MX_DMA2D_Init();
+  /* TEMPORARY diagnostic isolation; this generated call needs review after CubeMX. */
+  if ((SDRAM_DIAGNOSTIC_ONLY == 0U) && (LCD_DIAGNOSTIC_ENABLE == 0U)) {
+    MX_ADC1_Init();
+    MX_CRC_Init();
+    MX_DMA2D_Init();
+  }
   MX_FMC_Init();
-  MX_I2C3_Init();
-  MX_LTDC_Init();
-  MX_SPI5_Init();
-  MX_TIM1_Init();
-  MX_USART1_UART_Init();
-  MX_USB_HOST_Init();
+  /* TEMPORARY: no LTDC controller/layer or SDRAM framebuffer fetch in this build. */
+  if ((SDRAM_DIAGNOSTIC_ONLY == 0U) && (LCD_DIAGNOSTIC_ENABLE == 0U)) {
+    MX_I2C3_Init();
+    if (g_sdram_diagnostic.init_complete != 0U) {
+      MX_LTDC_Init();
+    }
+    MX_SPI5_Init();
+    MX_TIM1_Init();
+    MX_USART1_UART_Init();
+  }
   /* USER CODE BEGIN 2 */
-
+#if LCD_DIAGNOSTIC_ENABLE
+  if (LCD_PrepareFramebuffer() != HAL_OK) { LCD_DiagnosticStop(); }
+  g_lcd_diagnostic.stage = LCD_STAGE_SPI;
+  g_lcd_diagnostic.spi_status = MX_SPI5_Init();
+  if (g_lcd_diagnostic.spi_status != HAL_OK) {
+    LCD_Fail(LCD_ERROR_SPI_INIT); LCD_DiagnosticStop();
+  }
+  if (LCD_InitializeIli9341(&hspi5) != HAL_OK) { LCD_DiagnosticStop(); }
+  g_lcd_diagnostic.stage = LCD_STAGE_LTDC;
+  g_lcd_diagnostic.ltdc_status = MX_LTDC_Init();
+  if (g_lcd_diagnostic.ltdc_status != HAL_OK) {
+    LCD_Fail(LCD_ERROR_LTDC_INIT); LCD_DiagnosticStop();
+  }
+  if (LCD_ConfirmStart() != HAL_OK) { LCD_DiagnosticStop(); }
+#if DMA2D_DIAGNOSTIC_ENABLE
+  DG_TestRun();
+#endif
+#else
+  if (SDRAM_DIAGNOSTIC_ONLY != 0U) {
+    SDRAM_DiagnosticStop();
+  }
+#endif
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -134,9 +166,15 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-    MX_USB_HOST_Process();
 
     /* USER CODE BEGIN 3 */
+#if LCD_DIAGNOSTIC_ENABLE
+#if DMA2D_DIAGNOSTIC_ENABLE
+    DG_TestProcess();
+#else
+    LCD_Process();
+#endif
+#endif
   }
   /* USER CODE END 3 */
 }
@@ -150,20 +188,25 @@ void SystemClock_Config(void)
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-  /** Configure the main internal regulator output voltage
+  /** Voltage scale 1 for nominal SYSCLK_HZ = 160000000; RM0090 section 5.1.4.
   */
   __HAL_RCC_PWR_CLK_ENABLE();
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
-  /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
+  /** HSI with default trimming; RM0090 sections 6.2.2, 6.2.3 and 6.3.2.
+  * Nominal PLL input: 16000000 Hz / 16; SYSCLK: input * 320 / 2.
+  * Leave margin for positive HSI error below the 168 MHz limit without overdrive
+  * (STM32F429xx datasheet section 6.3.1, table 17).
+  * PLLSAI shares this input, preserving the nominal LTDC clock of 6000000 Hz.
+  * Actual derived clocks inherit HSI frequency error.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 8;
-  RCC_OscInitStruct.PLL.PLLN = 336;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLM = 16;
+  RCC_OscInitStruct.PLL.PLLN = 320;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 7;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
@@ -171,7 +214,8 @@ void SystemClock_Config(void)
     Error_Handler();
   }
 
-  /** Initializes the CPU, AHB and APB buses clocks
+  /** Nominal HCLK/PCLK1/PCLK2: 160/40/20 MHz; RM0090 section 6.3.3.
+  * Keep five Flash wait states; RM0090 section 3.5.1.
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
@@ -354,7 +398,7 @@ static void MX_I2C3_Init(void)
   * @param None
   * @retval None
   */
-static void MX_LTDC_Init(void)
+static HAL_StatusTypeDef MX_LTDC_Init(void)
 {
 
   /* USER CODE BEGIN LTDC_Init 0 */
@@ -382,10 +426,9 @@ static void MX_LTDC_Init(void)
   hltdc.Init.Backcolor.Blue = 0;
   hltdc.Init.Backcolor.Green = 0;
   hltdc.Init.Backcolor.Red = 0;
-  if (HAL_LTDC_Init(&hltdc) != HAL_OK)
-  {
-    Error_Handler();
-  }
+  /* RM0090 16.4/16.6: BSP timings; framebuffer already filled before LTDCEN. */
+  HAL_StatusTypeDef status = HAL_LTDC_Init(&hltdc);
+  if (status != HAL_OK) { return status; }
   pLayerCfg.WindowX0 = 0;
   pLayerCfg.WindowX1 = 240;
   pLayerCfg.WindowY0 = 0;
@@ -395,20 +438,18 @@ static void MX_LTDC_Init(void)
   pLayerCfg.Alpha0 = 0;
   pLayerCfg.BlendingFactor1 = LTDC_BLENDING_FACTOR1_PAxCA;
   pLayerCfg.BlendingFactor2 = LTDC_BLENDING_FACTOR2_PAxCA;
-  pLayerCfg.FBStartAdress = 0xD0000000;
+  pLayerCfg.FBStartAdress = LCD_FRAMEBUFFER_ADDRESS;
   pLayerCfg.ImageWidth = 240;
   pLayerCfg.ImageHeight = 320;
   pLayerCfg.Backcolor.Blue = 0;
   pLayerCfg.Backcolor.Green = 0;
   pLayerCfg.Backcolor.Red = 0;
-  if (HAL_LTDC_ConfigLayer(&hltdc, &pLayerCfg, 0) != HAL_OK)
-  {
-    Error_Handler();
-  }
+  /* RM0090 16.7.14/16.7.18/16.7.22-24: one RGB565 layer, pitch 480 bytes. */
+  status = HAL_LTDC_ConfigLayer(&hltdc, &pLayerCfg, 0);
   /* USER CODE BEGIN LTDC_Init 2 */
 
   /* USER CODE END LTDC_Init 2 */
-
+  return status;
 }
 
 /**
@@ -416,7 +457,7 @@ static void MX_LTDC_Init(void)
   * @param None
   * @retval None
   */
-static void MX_SPI5_Init(void)
+static HAL_StatusTypeDef MX_SPI5_Init(void)
 {
 
   /* USER CODE BEGIN SPI5_Init 0 */
@@ -434,19 +475,17 @@ static void MX_SPI5_Init(void)
   hspi5.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi5.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi5.Init.NSS = SPI_NSS_SOFT;
-  hspi5.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
+  /* RM0090 28.3.3/28.3.5: BSP mode 0, 8-bit; current APB2 20 MHz / 4 = 5 MHz. */
+  hspi5.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
   hspi5.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi5.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi5.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
   hspi5.Init.CRCPolynomial = 10;
-  if (HAL_SPI_Init(&hspi5) != HAL_OK)
-  {
-    Error_Handler();
-  }
+  HAL_StatusTypeDef status = HAL_SPI_Init(&hspi5);
   /* USER CODE BEGIN SPI5_Init 2 */
 
   /* USER CODE END SPI5_Init 2 */
-
+  return status;
 }
 
 /**
@@ -571,7 +610,17 @@ static void MX_FMC_Init(void)
   }
 
   /* USER CODE BEGIN FMC_Init 2 */
-
+  /* RM0090 37.7.3: initialize the external device before any LTDC layer starts. */
+  if (SDRAM_Initialize(&hsdram1) != HAL_OK) {
+    return; /* Diagnostic record remains in internal SRAM; do not touch SDRAM. */
+  }
+#if SDRAM_DIAGNOSTIC_ONLY
+#if SDRAM_EXTENDED_TESTS
+  SDRAM_RunExtendedTests();
+#else
+  SDRAM_RunCpuTests();
+#endif
+#endif
   /* USER CODE END FMC_Init 2 */
 }
 
@@ -598,13 +647,19 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, NCS_MEMS_SPI_Pin|CSX_Pin|OTG_FS_PSO_Pin, GPIO_PIN_RESET);
+  /* MB1075B sheets 6/7: deselect gyro and LCD before SPI; RM0090 8.4.7. */
+  HAL_GPIO_WritePin(GPIOC, NCS_MEMS_SPI_Pin|CSX_Pin, GPIO_PIN_SET);
+
+  /* PC4 high disables active-low VBUS switch U8 (MB1075B, USB_OTG_FS sheet).
+   * Set the latch before output mode; RM0090 sections 8.4.1 and 8.4.7.
+   */
+  HAL_GPIO_WritePin(OTG_FS_PSO_GPIO_Port, OTG_FS_PSO_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(ACP_RST_GPIO_Port, ACP_RST_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, RDX_Pin|WRX_DCX_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOD, RDX_Pin|WRX_DCX_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOG, LD3_Pin|LD4_Pin, GPIO_PIN_RESET);
@@ -628,12 +683,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(ACP_RST_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : OTG_FS_OC_Pin */
-  GPIO_InitStruct.Pin = OTG_FS_OC_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_EVT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(OTG_FS_OC_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : BOOT1_Pin */
   GPIO_InitStruct.Pin = BOOT1_Pin;
@@ -700,6 +749,9 @@ void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
+#if LCD_DIAGNOSTIC_ENABLE
+  LCD_Fail(LCD_ERROR_HAL_FATAL);
+#endif
   __disable_irq();
   while (1)
   {

@@ -1,0 +1,1323 @@
+--- a/Core/Src/main.c
++++ b/Core/Src/main.c
+@@ -23,6 +23,7 @@
+ /* USER CODE BEGIN Includes */
+ #include "sdram.h"
+ #include "lcd.h"
++#include "dma2d_graphics.h"
+ /* USER CODE END Includes */
+ 
+ /* Private typedef -----------------------------------------------------------*/
+@@ -150,6 +151,9 @@
+     LCD_Fail(LCD_ERROR_LTDC_INIT); LCD_DiagnosticStop();
+   }
+   if (LCD_ConfirmStart() != HAL_OK) { LCD_DiagnosticStop(); }
++#if DMA2D_DIAGNOSTIC_ENABLE
++  DG_TestRun();
++#endif
+ #else
+   if (SDRAM_DIAGNOSTIC_ONLY != 0U) {
+     SDRAM_DiagnosticStop();
+@@ -165,7 +169,11 @@
+ 
+     /* USER CODE BEGIN 3 */
+ #if LCD_DIAGNOSTIC_ENABLE
++#if DMA2D_DIAGNOSTIC_ENABLE
++    DG_TestProcess();
++#else
+     LCD_Process();
++#endif
+ #endif
+   }
+   /* USER CODE END 3 */
+--- a/Core/Src/stm32f4xx_it.c
++++ b/Core/Src/stm32f4xx_it.c
+@@ -24,6 +24,7 @@
+ /* USER CODE BEGIN Includes */
+ #include "sdram.h"
+ #include "lcd.h"
++#include "dma2d_graphics.h"
+ /* USER CODE END Includes */
+ 
+ /* Private typedef -----------------------------------------------------------*/
+@@ -91,6 +92,7 @@
+   /* USER CODE BEGIN HardFault_IRQn 0 */
+   SDRAM_RecordHardFault();
+   LCD_RecordHardFault();
++  DG_RecordHardFault();
+   /* USER CODE END HardFault_IRQn 0 */
+   while (1)
+   {
+@@ -241,7 +243,10 @@
+ void DMA2D_IRQHandler(void)
+ {
+   /* USER CODE BEGIN DMA2D_IRQn 0 */
+-
++#if DMA2D_DIAGNOSTIC_ENABLE
++  DG_IRQHandler();
++  return;
++#endif
+   /* USER CODE END DMA2D_IRQn 0 */
+   HAL_DMA2D_IRQHandler(&hdma2d);
+   /* USER CODE BEGIN DMA2D_IRQn 1 */
+--- a/Debug/Core/Src/subdir.mk
++++ b/Debug/Core/Src/subdir.mk
+@@ -8,6 +8,8 @@
+ ../Core/Src/main.c \
+ ../Core/Src/sdram.c \
+ ../Core/Src/lcd.c \
++../Core/Src/dma2d_graphics.c \
++../Core/Src/dma2d_validation.c \
+ ../Core/Src/stm32f4xx_hal_msp.c \
+ ../Core/Src/stm32f4xx_hal_timebase_tim.c \
+ ../Core/Src/stm32f4xx_it.c \
+@@ -19,6 +21,8 @@
+ ./Core/Src/main.o \
+ ./Core/Src/sdram.o \
+ ./Core/Src/lcd.o \
++./Core/Src/dma2d_graphics.o \
++./Core/Src/dma2d_validation.o \
+ ./Core/Src/stm32f4xx_hal_msp.o \
+ ./Core/Src/stm32f4xx_hal_timebase_tim.o \
+ ./Core/Src/stm32f4xx_it.o \
+@@ -30,6 +34,8 @@
+ ./Core/Src/main.d \
+ ./Core/Src/sdram.d \
+ ./Core/Src/lcd.d \
++./Core/Src/dma2d_graphics.d \
++./Core/Src/dma2d_validation.d \
+ ./Core/Src/stm32f4xx_hal_msp.d \
+ ./Core/Src/stm32f4xx_hal_timebase_tim.d \
+ ./Core/Src/stm32f4xx_it.d \
+@@ -47,5 +53,7 @@
+ clean-Core-2f-Src:
+ 	-$(RM) ./Core/Src/main.cyclo ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/sdram.cyclo ./Core/Src/sdram.d ./Core/Src/sdram.o ./Core/Src/sdram.su ./Core/Src/lcd.cyclo ./Core/Src/lcd.d ./Core/Src/lcd.o ./Core/Src/lcd.su ./Core/Src/stm32f4xx_hal_msp.cyclo ./Core/Src/stm32f4xx_hal_msp.d ./Core/Src/stm32f4xx_hal_msp.o ./Core/Src/stm32f4xx_hal_msp.su ./Core/Src/stm32f4xx_hal_timebase_tim.cyclo ./Core/Src/stm32f4xx_hal_timebase_tim.d ./Core/Src/stm32f4xx_hal_timebase_tim.o ./Core/Src/stm32f4xx_hal_timebase_tim.su ./Core/Src/stm32f4xx_it.cyclo ./Core/Src/stm32f4xx_it.d ./Core/Src/stm32f4xx_it.o ./Core/Src/stm32f4xx_it.su ./Core/Src/syscalls.cyclo ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.cyclo ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32f4xx.cyclo ./Core/Src/system_stm32f4xx.d ./Core/Src/system_stm32f4xx.o ./Core/Src/system_stm32f4xx.su
+ 
++	-$(RM) ./Core/Src/dma2d_graphics.o ./Core/Src/dma2d_graphics.d ./Core/Src/dma2d_graphics.su ./Core/Src/dma2d_graphics.cyclo ./Core/Src/dma2d_validation.o ./Core/Src/dma2d_validation.d ./Core/Src/dma2d_validation.su ./Core/Src/dma2d_validation.cyclo
++
+ .PHONY: clean-Core-2f-Src
+ 
+--- a/Debug/objects.list
++++ b/Debug/objects.list
+@@ -40,3 +40,5 @@
+ "./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.o"
+ "./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.o"
+ "./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_fmc.o"
++"./Core/Src/dma2d_graphics.o"
++"./Core/Src/dma2d_validation.o"
+--- a/LCD_LTDC_INITIAL_DIAGNOSTIC.md
++++ b/LCD_LTDC_INITIAL_DIAGNOSTIC.md
+@@ -249,8 +249,10 @@
+ под аппаратным сбросом, SWD фактически 950 кГц. Автоматические записи
+ examine-end/reset-init скриптов отключены. Проверка начинается из Reset_Handler,
+ без сохранённой конфигурации SDRAM/LTDC предыдущей прошивки.
+-Power-cycle пока отдельно не выполнялся; критерий старта после аппаратного
+-сброса выполнен цифровой процедурой. ST-LINK voltage 2,88 В — показание
++Power-cycle задания №6 дополнительно подтверждён оператором в исходных данных
++задания №7: успешный запуск после полного отключения и повторного включения
++питания. Критерий старта после аппаратного сброса выполнен цифровой процедурой.
++ST-LINK voltage 2,88 В — показание
+ отладчика, не замена измерению Fluke на C50.
+ 
+ ## Приёмка и границы результата
+@@ -263,7 +265,9 @@
+ - **PASS, сохранённая диагностика более 70 с:** SPI/LTDC/SDRAM errors=0,
+   три прохода теста вне framebuffer без несовпадений, FMC неизменён,
+   CFSR/HFSR=0, доступ отладчика сохранён.
+-- **Не выполнялись:** отдельный power-cycle, длительные испытания за пределами
++- **PASS, дополнительное сообщение оператора в задании №7:** power-cycle
++  предыдущей LCD-прошивки; успешный запуск после полного отключения питания.
++- **Не выполнялись:** длительные испытания за пределами
+   этого интервала, испытания при дополнительной нагрузке ADC/DMA2D,
+   измерение геометрии по пикселям и проверка всего диапазона питания/температуры.
+   Фотография и осциллограммы не предоставлены.
+--- /dev/null
++++ b/Core/Inc/dma2d_graphics.h
+@@ -0,0 +1,68 @@
++#ifndef OSCILL_DMA2D_GRAPHICS_H
++#define OSCILL_DMA2D_GRAPHICS_H
++#include "lcd.h"
++
++#define DMA2D_DIAGNOSTIC_ENABLE 1U
++#define DMA2D_BENCH_SAMPLES 30U
++#define DMA2D_BENCH_COUNT 8U
++typedef enum { DG_OK=0, DG_INVALID=1, DG_BUSY=2, DG_HAL_ERROR=3,
++  DG_TIMEOUT=4, DG_VERIFY=5, DG_CONFIG_CHANGED=6, DG_HARDFAULT=7 } DG_Status;
++typedef enum { DG_FILL=0, DG_COPY=1, DG_PFC=2, DG_BLEND=3 } DG_Operation;
++typedef struct { uint32_t address, width, height, format; } DG_Surface;
++typedef struct {
++  DG_Operation operation;
++  const DG_Surface *dst, *fg, *bg;
++  uint32_t dx, dy, fx, fy, bx, by, width, height;
++  uint16_t color;
++} DG_Job;
++typedef struct {
++  uint32_t cr,isr,opfccr,ocolr,omar,oor,nlr,fgmar,fgor,fgpfccr,bgmar,bgor,bgpfccr;
++} DG_Registers;
++typedef struct {
++  uint32_t cpu, setup, launch, tail, total;
++} DG_Sample;
++typedef struct {
++  uint32_t operation,width,height,samples;
++  DG_Sample raw[DMA2D_BENCH_SAMPLES];
++} DG_Benchmark;
++typedef struct {
++  uint32_t stage,state,current_mode,transfer_count,completed_count,irq_count;
++  uint32_t dma2d_error_count,timeout_count,verification_errors,first_error_addr;
++  uint32_t expected,actual,last_hal_status,last_hal_error,last_dma2d_isr,last_error;
++  uint64_t pixels_processed;
++  uint32_t cpu_cycles,dma2d_cycles,ltdc_fifo_errors,ltdc_transfer_errors,fmc_unchanged;
++  uint32_t hardfault_count,cfsr,hfsr,bfar_valid,bfar;
++  uint32_t source_addr,background_addr,destination_addr,busy_rejections,invalid_rejections;
++  uint32_t guard_checks,checked_pixels,tests_passed,stage_pass_mask;
++  uint32_t setup_cycles,launch_cycles,tail_cycles,total_cycles;
++  uint32_t dwt_ctrl,dwt_probe_cycles,nominal_hclk_hz;
++  uint32_t async_inflight,async_returned_pending,overlap_batches,overlap_cpu_accesses;
++  uint32_t stress_start_tick_ms,stress_elapsed_tick_ms,stress_transfers;
++  uint64_t stress_pixels;
++  uint32_t framebuffer_checks,animation_updates,display_phase,visual_state;
++  uint32_t first_error_stage,first_error_mode,first_error_isr;
++  uint32_t blend_rounding_pixels,blend_max_channel_difference;
++  DG_Registers before,after,first_error_registers;
++  SDRAM_RegisterSnapshot fmc_before,fmc_after;
++  LCD_RegisterSnapshot ltdc_before,ltdc_after;
++  DG_Benchmark benchmarks[DMA2D_BENCH_COUNT];
++} DG_Diagnostic;
++extern volatile DG_Diagnostic g_dma2d_diagnostic;
++extern const DG_Surface dg_framebuffer,dg_scratch_a,dg_scratch_b,dg_argb_source,dg_argb_destination;
++DG_Status DG_Init(void);
++DG_Status DG_Start(const DG_Job *job, uint32_t interrupt_mode);
++DG_Status DG_Wait(uint32_t timeout_ms);
++uint32_t DG_IsBusy(void);
++void DG_IRQHandler(void);
++void DG_RecordHardFault(void);
++void DG_Fail(DG_Status status);
++void DG_Snapshot(DG_Registers *s);
++uint32_t DG_Expand565(uint16_t value);
++uint16_t DG_Quantize565(uint32_t value);
++uint16_t DG_Blend565(uint32_t foreground,uint16_t background);
++void DG_TestRun(void);
++void DG_TestProcess(void);
++__attribute__((noinline,noreturn)) void DG_DiagnosticStop(void);
++/* Hardware checkpoint: no side effects; breakpoint here after each stage. */
++__attribute__((noinline)) void DG_Checkpoint(void);
++#endif
+--- /dev/null
++++ b/Core/Src/dma2d_graphics.c
+@@ -0,0 +1,216 @@
++#include "dma2d_graphics.h"
++#include "main.h"
++extern DMA2D_HandleTypeDef hdma2d;
++volatile DG_Diagnostic g_dma2d_diagnostic __attribute__((section(".bss.dma2d_diagnostic"),aligned(8)));
++const DG_Surface dg_framebuffer={0xD0000000U,240U,320U,DMA2D_OUTPUT_RGB565};
++const DG_Surface dg_scratch_a={0xD0200000U,240U,320U,DMA2D_OUTPUT_RGB565};
++const DG_Surface dg_scratch_b={0xD0240000U,240U,320U,DMA2D_OUTPUT_RGB565};
++const DG_Surface dg_argb_source={0xD0300000U,64U,64U,DMA2D_OUTPUT_ARGB8888};
++const DG_Surface dg_argb_destination={0xD0310000U,64U,64U,DMA2D_OUTPUT_ARGB8888};
++static uint32_t start_tick_ms,start_cycles,call_cycles;
++static uint32_t pending_pixels;
++static volatile uint32_t irq_done;
++static volatile uint32_t irq_cycles;
++static uint32_t transaction_open,active_irq_mode;
++static uint32_t bytes_per_pixel(const DG_Surface *s) {return s->format==DMA2D_OUTPUT_RGB565?2U:4U;}
++
++/* RM0090 11.3.4: replicate high bits, implicit alpha=255 for RGB565. */
++__attribute__((optimize("O2"))) uint32_t DG_Expand565(uint16_t v)
++{
++  uint32_t r=(v>>11)&31U,g=(v>>5)&63U,b=v&31U;
++  return 0xFF000000U|(((r<<3)|(r>>2))<<16)|(((g<<2)|(g>>4))<<8)|((b<<3)|(b>>2));
++}
++/* RM0090 11.3.7: retain most significant output component bits. */
++__attribute__((optimize("O2"))) uint16_t DG_Quantize565(uint32_t v)
++{return (uint16_t)(((v>>8)&0xF800U)|((v>>5)&0x07E0U)|((v>>3)&0x001FU));}
++/* RM0090 11.3.6: opaque BG => floor((FG*a+BG*(255-a))/255). */
++__attribute__((optimize("O2"))) uint16_t DG_Blend565(uint32_t f,uint16_t b)
++{
++  uint32_t bg=DG_Expand565(b),a=f>>24,r=0U;
++  for(uint32_t shift=0U;shift<24U;shift+=8U) {
++    r|=(( ((f>>shift)&255U)*a+((bg>>shift)&255U)*(255U-a))/255U)<<shift;
++  }
++  return DG_Quantize565(r);
++}
++void DG_Snapshot(DG_Registers *s)
++{
++  /* RM0090 11.5: capture before any HAL handler can clear error flags. */
++  s->cr=DMA2D->CR;s->isr=DMA2D->ISR;s->opfccr=DMA2D->OPFCCR;s->ocolr=DMA2D->OCOLR;
++  s->omar=DMA2D->OMAR;s->oor=DMA2D->OOR;s->nlr=DMA2D->NLR;
++  s->fgmar=DMA2D->FGMAR;s->fgor=DMA2D->FGOR;s->fgpfccr=DMA2D->FGPFCCR;
++  s->bgmar=DMA2D->BGMAR;s->bgor=DMA2D->BGOR;s->bgpfccr=DMA2D->BGPFCCR;
++}
++void DG_Fail(DG_Status status)
++{
++  if(g_dma2d_diagnostic.state!=LCD_STATE_FAIL) {
++    g_dma2d_diagnostic.first_error_stage=g_dma2d_diagnostic.stage;
++    g_dma2d_diagnostic.first_error_mode=g_dma2d_diagnostic.current_mode;
++    if((RCC->AHB1ENR&RCC_AHB1ENR_DMA2DEN)!=0U) {
++      DG_Registers r;DG_Snapshot(&r);g_dma2d_diagnostic.first_error_registers=r;
++      g_dma2d_diagnostic.first_error_isr=r.isr;
++    }
++  }
++  g_dma2d_diagnostic.last_error=status;g_dma2d_diagnostic.state=LCD_STATE_FAIL;
++}
++static uint32_t surface_valid(const DG_Surface *s)
++{
++  /* Whitelist fixed DMA-accessible buffers. No CCM or arbitrary peripheral address. */
++  if(s==NULL) return 0U;
++  const DG_Surface *all[]={&dg_framebuffer,&dg_scratch_a,&dg_scratch_b,&dg_argb_source,&dg_argb_destination};
++  for(uint32_t i=0U;i<5U;i++) if(s->address==all[i]->address&&s->width==all[i]->width
++      &&s->height==all[i]->height&&s->format==all[i]->format) return 1U;
++  return 0U;
++}
++static uint32_t rectangle_valid(const DG_Surface *s,uint32_t x,uint32_t y,uint32_t w,uint32_t h)
++{return surface_valid(s)&&w!=0U&&h!=0U&&x<s->width&&y<s->height&&w<=s->width-x&&h<=s->height-y;}
++static uint32_t address(const DG_Surface *s,uint32_t x,uint32_t y)
++{return s->address+(y*s->width+x)*bytes_per_pixel(s);}
++static uint32_t overlaps(const DG_Surface *a,uint32_t ax,uint32_t ay,
++                         const DG_Surface *b,uint32_t bx,uint32_t by,uint32_t w,uint32_t h)
++{
++  uint64_t a0=address(a,ax,ay),b0=address(b,bx,by);
++  uint64_t a1=a0+((uint64_t)(h-1U)*a->width+w)*bytes_per_pixel(a);
++  uint64_t b1=b0+((uint64_t)(h-1U)*b->width+w)*bytes_per_pixel(b);
++  return a0<b1&&b0<a1; /* Conservative span check; never memmove semantics. */
++}
++uint32_t DG_IsBusy(void)
++{return transaction_open||g_dma2d_diagnostic.async_inflight||(DMA2D->CR&DMA2D_CR_START)!=0U||HAL_DMA2D_GetState(&hdma2d)==HAL_DMA2D_STATE_BUSY;}
++static void complete_callback(DMA2D_HandleTypeDef *handle)
++{
++  (void)handle;irq_cycles=DWT->CYCCNT;
++  if(g_dma2d_diagnostic.state!=LCD_STATE_FAIL) {
++    g_dma2d_diagnostic.completed_count++;g_dma2d_diagnostic.pixels_processed+=pending_pixels;
++  }
++  g_dma2d_diagnostic.async_inflight=0U;__DMB();irq_done=1U;
++}
++static void error_callback(DMA2D_HandleTypeDef *handle)
++{
++  g_dma2d_diagnostic.last_hal_error=HAL_DMA2D_GetError(handle);
++  g_dma2d_diagnostic.last_hal_status=HAL_ERROR;DG_Fail(DG_HAL_ERROR);
++}
++DG_Status DG_Init(void)
++{
++  g_dma2d_diagnostic=(DG_Diagnostic){0};g_dma2d_diagnostic.state=LCD_STATE_RUNNING;
++  g_dma2d_diagnostic.stage=1U;hdma2d.Instance=DMA2D;
++  /* RM0090 6.3.10,11.3.11: HAL MSP enables only DMA2D clock/NVIC, no FMC/GPIO. */
++  hdma2d.Init.Mode=DMA2D_R2M;hdma2d.Init.ColorMode=DMA2D_OUTPUT_RGB565;hdma2d.Init.OutputOffset=0U;
++  HAL_StatusTypeDef h=HAL_DMA2D_Init(&hdma2d);g_dma2d_diagnostic.last_hal_status=h;
++  if(h!=HAL_OK) {DG_Fail(DG_HAL_ERROR);return DG_HAL_ERROR;}
++  /* CMSIS Cortex-M4 DWT/DEMCR; count short intervals modulo 2^32 (<100 ms). */
++  CoreDebug->DEMCR|=CoreDebug_DEMCR_TRCENA_Msk;
++  if((DWT->CTRL&DWT_CTRL_NOCYCCNT_Msk)!=0U) {DG_Fail(DG_HAL_ERROR);return DG_HAL_ERROR;}
++  DWT->CTRL|=DWT_CTRL_CYCCNTENA_Msk;__DSB();__ISB();
++  uint32_t a=DWT->CYCCNT;for(volatile uint32_t i=0U;i<100U;i++) {__NOP();}
++  g_dma2d_diagnostic.dwt_probe_cycles=DWT->CYCCNT-a;
++  g_dma2d_diagnostic.dwt_ctrl=DWT->CTRL;g_dma2d_diagnostic.nominal_hclk_hz=SystemCoreClock;
++  if(g_dma2d_diagnostic.dwt_probe_cycles==0U||DG_IsBusy()) {DG_Fail(DG_HAL_ERROR);return DG_HAL_ERROR;}
++  DG_Registers r;DG_Snapshot(&r);g_dma2d_diagnostic.before=r;return DG_OK;
++}
++DG_Status DG_Start(const DG_Job *j,uint32_t interrupt_mode)
++{
++  uint32_t entry_cycles=DWT->CYCCNT;
++  if(g_dma2d_diagnostic.state==LCD_STATE_FAIL) return DG_HAL_ERROR;
++  if(DG_IsBusy()) {g_dma2d_diagnostic.busy_rejections++;return DG_BUSY;}
++  if(j==NULL||j->operation>DG_BLEND||interrupt_mode>1U
++      ||!rectangle_valid(j->dst,j->dx,j->dy,j->width,j->height)
++      ||(j->operation==DG_FILL&&j->dst->format!=DMA2D_OUTPUT_RGB565)
++      ||(j->operation!=DG_FILL&&(!rectangle_valid(j->fg,j->fx,j->fy,j->width,j->height)
++        ||overlaps(j->dst,j->dx,j->dy,j->fg,j->fx,j->fy,j->width,j->height)))
++      ||(j->operation==DG_COPY&&j->dst->format!=j->fg->format)
++      ||(j->operation==DG_BLEND&&(!rectangle_valid(j->bg,j->bx,j->by,j->width,j->height)
++        ||overlaps(j->dst,j->dx,j->dy,j->bg,j->bx,j->by,j->width,j->height)))) {
++    g_dma2d_diagnostic.invalid_rejections++;return DG_INVALID;
++  }
++  call_cycles=entry_cycles;
++  const uint32_t mode=j->operation==DG_FILL?DMA2D_R2M:j->operation==DG_COPY?DMA2D_M2M:
++    j->operation==DG_PFC?DMA2D_M2M_PFC:DMA2D_M2M_BLEND;
++  /* RM0090 11.3.11 / 11.5: offsets measured in pixels, not bytes. */
++  hdma2d.Init.Mode=mode;hdma2d.Init.ColorMode=j->dst->format;hdma2d.Init.OutputOffset=j->dst->width-j->width;
++  HAL_StatusTypeDef h=HAL_DMA2D_Init(&hdma2d);
++  if(j->operation!=DG_FILL&&h==HAL_OK) {
++    hdma2d.LayerCfg[1].InputColorMode=j->fg->format;hdma2d.LayerCfg[1].InputOffset=j->fg->width-j->width;
++    hdma2d.LayerCfg[1].AlphaMode=DMA2D_NO_MODIF_ALPHA;hdma2d.LayerCfg[1].InputAlpha=255U;
++    h=HAL_DMA2D_ConfigLayer(&hdma2d,1U);
++  }
++  if(j->operation==DG_BLEND&&h==HAL_OK) {
++    hdma2d.LayerCfg[0].InputColorMode=j->bg->format;hdma2d.LayerCfg[0].InputOffset=j->bg->width-j->width;
++    hdma2d.LayerCfg[0].AlphaMode=DMA2D_NO_MODIF_ALPHA;hdma2d.LayerCfg[0].InputAlpha=255U;
++    h=HAL_DMA2D_ConfigLayer(&hdma2d,0U);
++  }
++  if(h!=HAL_OK) {g_dma2d_diagnostic.last_hal_status=h;DG_Fail(DG_HAL_ERROR);return DG_HAL_ERROR;}
++  hdma2d.XferCpltCallback=complete_callback;hdma2d.XferErrorCallback=error_callback;
++  uint32_t flags=DMA2D->ISR;g_dma2d_diagnostic.last_dma2d_isr=flags;
++  if(flags&(DMA2D_ISR_TEIF|DMA2D_ISR_CEIF|DMA2D_ISR_CAEIF)) {DG_Fail(DG_HAL_ERROR);return DG_HAL_ERROR;}
++  DMA2D->IFCR=DMA2D_IFCR_CTCIF|DMA2D_IFCR_CCTCIF;
++  uint32_t src=j->operation==DG_FILL?DG_Expand565(j->color):address(j->fg,j->fx,j->fy);
++  if(j->operation==DG_FILL&&j->dst->format!=DMA2D_OUTPUT_RGB565) {
++    g_dma2d_diagnostic.invalid_rejections++;return DG_INVALID;
++  }
++  g_dma2d_diagnostic.current_mode=j->operation;
++  g_dma2d_diagnostic.source_addr=j->operation==DG_FILL?0U:src;
++  g_dma2d_diagnostic.background_addr=j->operation==DG_BLEND?address(j->bg,j->bx,j->by):0U;
++  g_dma2d_diagnostic.destination_addr=address(j->dst,j->dx,j->dy);
++  pending_pixels=j->width*j->height;irq_done=0U;transaction_open=1U;active_irq_mode=interrupt_mode;
++  g_dma2d_diagnostic.async_inflight=interrupt_mode;
++  __DSB();start_tick_ms=HAL_GetTick();start_cycles=DWT->CYCCNT;
++  g_dma2d_diagnostic.setup_cycles=start_cycles-call_cycles;
++  if(j->operation==DG_BLEND) {
++    h=interrupt_mode?HAL_DMA2D_BlendingStart_IT(&hdma2d,src,g_dma2d_diagnostic.background_addr,
++      g_dma2d_diagnostic.destination_addr,j->width,j->height):HAL_DMA2D_BlendingStart(&hdma2d,src,
++      g_dma2d_diagnostic.background_addr,g_dma2d_diagnostic.destination_addr,j->width,j->height);
++  } else {
++    h=interrupt_mode?HAL_DMA2D_Start_IT(&hdma2d,src,g_dma2d_diagnostic.destination_addr,j->width,j->height):
++      HAL_DMA2D_Start(&hdma2d,src,g_dma2d_diagnostic.destination_addr,j->width,j->height);
++  }
++  uint32_t returned=DWT->CYCCNT;g_dma2d_diagnostic.launch_cycles=returned-start_cycles;
++  g_dma2d_diagnostic.last_hal_status=h;g_dma2d_diagnostic.last_hal_error=HAL_DMA2D_GetError(&hdma2d);
++  if(h!=HAL_OK) {DG_Fail(DG_HAL_ERROR);return DG_HAL_ERROR;}
++  g_dma2d_diagnostic.transfer_count++;start_cycles=returned;return DG_OK;
++}
++DG_Status DG_Wait(uint32_t timeout_ms)
++{
++  if(!transaction_open) return DG_INVALID;
++  for(;;) {
++    uint32_t isr=DMA2D->ISR;g_dma2d_diagnostic.last_dma2d_isr=isr;
++    if(isr&(DMA2D_ISR_TEIF|DMA2D_ISR_CEIF|DMA2D_ISR_CAEIF)) {
++      g_dma2d_diagnostic.dma2d_error_count++;DG_Fail(DG_HAL_ERROR);return DG_HAL_ERROR;
++    }
++    if(g_dma2d_diagnostic.state==LCD_STATE_FAIL) return DG_HAL_ERROR;
++    if(active_irq_mode?irq_done:(isr&DMA2D_ISR_TCIF)!=0U) break;
++    if(HAL_GetTick()-start_tick_ms>timeout_ms||DWT->CYCCNT-start_cycles>SystemCoreClock/10U) {
++      g_dma2d_diagnostic.timeout_count++;DG_Fail(DG_TIMEOUT);return DG_TIMEOUT;
++    }
++    if(g_lcd_diagnostic.state==LCD_STATE_FAIL) {DG_Fail(DG_HAL_ERROR);return DG_HAL_ERROR;}
++  }
++  uint32_t end=active_irq_mode?irq_cycles:DWT->CYCCNT;
++  /* PollForTransfer is called only after status captured and TC observed;
++   * it cannot erase an error before our snapshot or wait forever on a dead tick. */
++  HAL_StatusTypeDef h=active_irq_mode?HAL_OK:HAL_DMA2D_PollForTransfer(&hdma2d,0U);
++  __DSB();g_dma2d_diagnostic.tail_cycles=end-start_cycles;
++  if(active_irq_mode&&(int32_t)(end-start_cycles)<0) g_dma2d_diagnostic.tail_cycles=0U;
++  g_dma2d_diagnostic.total_cycles=DWT->CYCCNT-call_cycles;
++  g_dma2d_diagnostic.last_hal_status=h;g_dma2d_diagnostic.last_hal_error=HAL_DMA2D_GetError(&hdma2d);
++  if(h!=HAL_OK) {DG_Fail(DG_HAL_ERROR);return DG_HAL_ERROR;}
++  if(!active_irq_mode) {g_dma2d_diagnostic.completed_count++;g_dma2d_diagnostic.pixels_processed+=pending_pixels;}
++  transaction_open=0U;return DG_OK;
++}
++void DG_IRQHandler(void)
++{
++  /* RM0090 11.4/11.5.2-3: save ISR/error registers before HAL clears W1C flags.
++   * Short SRAM/AHB-slave operations only; no rendering, waits or FMC accesses. */
++  uint32_t isr=DMA2D->ISR;g_dma2d_diagnostic.last_dma2d_isr=isr;
++  g_dma2d_diagnostic.irq_count++;
++  if(isr&(DMA2D_ISR_TEIF|DMA2D_ISR_CEIF|DMA2D_ISR_CAEIF)) {
++    g_dma2d_diagnostic.dma2d_error_count++;DG_Fail(DG_HAL_ERROR);
++  }
++  HAL_DMA2D_IRQHandler(&hdma2d);
++}
++void DG_RecordHardFault(void)
++{
++  g_dma2d_diagnostic.hardfault_count++;g_dma2d_diagnostic.cfsr=SCB->CFSR;
++  g_dma2d_diagnostic.hfsr=SCB->HFSR;g_dma2d_diagnostic.bfar_valid=(SCB->CFSR&SCB_CFSR_BFARVALID_Msk)!=0U;
++  if(g_dma2d_diagnostic.bfar_valid) g_dma2d_diagnostic.bfar=SCB->BFAR;
++  DG_Fail(DG_HARDFAULT);__DSB();
++}
++__attribute__((noinline,noreturn)) void DG_DiagnosticStop(void) {for(;;) __WFI();}
++__attribute__((noinline)) void DG_Checkpoint(void) {__NOP();}
+--- /dev/null
++++ b/Core/Src/dma2d_validation.c
+@@ -0,0 +1,424 @@
++#include "dma2d_graphics.h"
++#define GUARD_HALFWORDS 16U
++static const DG_Surface * const buffers[]={&dg_scratch_a,&dg_scratch_b,&dg_argb_source,&dg_argb_destination};
++_Static_assert(0xD0025800U+32U<0xD0100000U,"Framebuffer / CPU test");
++_Static_assert(0xD0101000U+32U<0xD0200000U-32U,"CPU test / scratch A");
++_Static_assert(0xD0225800U+32U<0xD0240000U-32U,"Scratch A / B");
++_Static_assert(0xD0265800U+32U<0xD0300000U-32U,"Scratch B / ARGB source");
++_Static_assert(0xD0304000U+32U<0xD0310000U-32U,"ARGB source / destination");
++_Static_assert(0xD0314000U+32U<=SDRAM_BASE_ADDRESS+SDRAM_SIZE_BYTES,"All regions inside SDRAM");
++static uint32_t size_bytes(const DG_Surface *s) {return s->width*s->height*(s->format==2U?2U:4U);}
++static void mismatch(uint32_t address,uint32_t expected,uint32_t actual)
++{
++  if(!g_dma2d_diagnostic.verification_errors) {
++    g_dma2d_diagnostic.first_error_addr=address;g_dma2d_diagnostic.expected=expected;g_dma2d_diagnostic.actual=actual;
++  }
++  g_dma2d_diagnostic.verification_errors++;DG_Fail(DG_VERIFY);
++}
++static void guards_init(void)
++{
++  for(uint32_t b=0U;b<4U;b++) for(uint32_t i=0U;i<GUARD_HALFWORDS;i++) {
++    ((volatile uint16_t *)(uintptr_t)(buffers[b]->address-32U))[i]=(uint16_t)(0xA500U+b*32U+i);
++    ((volatile uint16_t *)(uintptr_t)(buffers[b]->address+size_bytes(buffers[b])))[i]=(uint16_t)(0x5A00U+b*32U+i);
++  }
++  static const uint32_t extra[]={0xD0025800U,0xD00FFFE0U,0xD0101000U};
++  for(uint32_t b=0U;b<3U;b++) for(uint32_t i=0U;i<GUARD_HALFWORDS;i++)
++    ((volatile uint16_t *)(uintptr_t)extra[b])[i]=(uint16_t)(0xC300U+b*32U+i);
++  __DSB();
++}
++static void guards_check(void)
++{
++  for(uint32_t b=0U;b<4U;b++) for(uint32_t i=0U;i<GUARD_HALFWORDS;i++) {
++    uint32_t addresses[]={buffers[b]->address-32U+i*2U,buffers[b]->address+size_bytes(buffers[b])+i*2U};
++    for(uint32_t k=0U;k<2U;k++) {
++      uint16_t e=(uint16_t)((k?0x5A00U:0xA500U)+b*32U+i);
++      uint16_t a=*(volatile uint16_t *)(uintptr_t)addresses[k];
++      if(e!=a) mismatch(addresses[k],e,a);
++      g_dma2d_diagnostic.guard_checks++;
++    }
++  }
++  static const uint32_t extra[]={0xD0025800U,0xD00FFFE0U,0xD0101000U};
++  for(uint32_t b=0U;b<3U;b++) for(uint32_t i=0U;i<GUARD_HALFWORDS;i++) {
++    uint32_t addr=extra[b]+i*2U;uint16_t e=(uint16_t)(0xC300U+b*32U+i),a=*(volatile uint16_t *)(uintptr_t)addr;
++    if(a!=e) mismatch(addr,e,a);
++    g_dma2d_diagnostic.guard_checks++;
++  }
++}
++static void fill_cpu(const DG_Surface *s,uint16_t color)
++{volatile uint16_t *p=(volatile uint16_t *)(uintptr_t)s->address;for(uint32_t i=0U;i<s->width*s->height;i++) p[i]=color;__DSB();}
++static void verify_fill(const DG_Job *j,uint16_t outside)
++{
++  for(uint32_t y=0U;y<j->dst->height;y++) for(uint32_t x=0U;x<j->dst->width;x++) {
++    uint16_t e=x>=j->dx&&x-j->dx<j->width&&y>=j->dy&&y-j->dy<j->height?j->color:outside;
++    uint32_t a=j->dst->address+2U*(y*j->dst->width+x);
++    uint16_t v=*(volatile uint16_t *)(uintptr_t)a;g_dma2d_diagnostic.checked_pixels++;
++    if(v!=e) mismatch(a,e,v);
++  }
++  guards_check();if(g_dma2d_diagnostic.state==LCD_STATE_FAIL) DG_DiagnosticStop();
++  g_dma2d_diagnostic.tests_passed++;
++}
++static void execute(const DG_Job *j,uint32_t irq)
++{if(DG_Start(j,irq)!=DG_OK||DG_Wait(50U)!=DG_OK) DG_DiagnosticStop();}
++static void fill_tests(void)
++{
++  g_dma2d_diagnostic.stage=2U;
++  static const uint16_t colors[]={0x0000U,0xFFFFU,0xF800U,0x07E0U,0x001FU,0xFFE0U,0xF81FU,0x07FFU};
++  DG_Job j={.operation=DG_FILL,.dst=&dg_scratch_a,.width=240U,.height=320U};
++  for(uint32_t c=0U;c<8U;c++) {j.color=colors[c];execute(&j,0U);verify_fill(&j,0U);}
++  g_dma2d_diagnostic.stage_pass_mask|=1U<<2;DG_Checkpoint();
++  g_dma2d_diagnostic.stage=3U;
++  static const uint16_t sizes[][2]={{1,1},{8,8},{16,16},{64,64},{120,160},{240,320},{7,13},{37,29}};
++  for(uint32_t n=0U;n<8U;n++) for(uint32_t p=0U;p<5U;p++) {
++    j.width=sizes[n][0];j.height=sizes[n][1];j.color=0x39E7U;
++    j.dx=p==0U?0U:p==1U?(240U-j.width)/2U:p==4U?0U:240U-j.width;
++    j.dy=p==0U?0U:p==1U?(320U-j.height)/2U:p==3U?0U:320U-j.height;
++    fill_cpu(&dg_scratch_a,0xA55AU);execute(&j,0U);verify_fill(&j,0xA55AU);
++  }
++  g_dma2d_diagnostic.stage_pass_mask|=1U<<3;DG_Checkpoint();
++}
++static uint32_t pattern_tag;
++static uint16_t pattern565(uint32_t x,uint32_t y)
++{
++  static const uint16_t c[]={0x0000U,0xFFFFU,0xF800U,0x07E0U,0x001FU,0xFFE0U,0xF81FU,0x07FFU};
++  if(pattern_tag==0U) return (uint16_t)((y*240U+x)*0x9E37U^((y*240U+x)>>7)^0x1357U);
++  if(pattern_tag==3U) return 0x001FU;
++  if((x&15U)<8U) return c[x&7U];
++  return (uint16_t)(((x&31U)<<11)|((y&63U)<<5)|((x+y)&31U));
++}
++static uint32_t pattern8888(uint32_t x,uint32_t y)
++{
++  if(pattern_tag==3U) {
++    if(y<16U) return 0x00FF0000U;
++    if(y<32U) return 0x8000FF00U;
++    if(y<48U) return 0xFFFFFFFFU;
++    return ((x*255U/63U)<<24)|0x00FF0000U|((y*4U&255U)<<8)|0x35U;
++  }
++  return ((x*255U/63U)<<24)|((x*4U)<<16)|((y*4U)<<8)|((x*13U+y*7U)&255U);
++}
++static void prepare_sources(uint32_t tag)
++{
++  pattern_tag=tag;
++  volatile uint16_t *a=(volatile uint16_t *)(uintptr_t)dg_scratch_a.address;
++  volatile uint32_t *f=(volatile uint32_t *)(uintptr_t)dg_argb_source.address;
++  for(uint32_t y=0U;y<320U;y++) for(uint32_t x=0U;x<240U;x++) a[y*240U+x]=pattern565(x,y);
++  for(uint32_t y=0U;y<64U;y++) for(uint32_t x=0U;x<64U;x++) f[y*64U+x]=pattern8888(x,y);
++  __DSB();
++}
++static void prepare_dest(const DG_Surface *s)
++{
++  if(s->format==2U) fill_cpu(s,0xA55AU);
++  else {volatile uint32_t *p=(volatile uint32_t *)(uintptr_t)s->address;for(uint32_t i=0U;i<4096U;i++) p[i]=0x1A2B3C4DU;__DSB();}
++}
++static uint32_t read_pixel(const DG_Surface *s,uint32_t x,uint32_t y)
++{
++  uint32_t index=y*s->width+x;
++  return s->format==2U?((volatile uint16_t *)(uintptr_t)s->address)[index]:((volatile uint32_t *)(uintptr_t)s->address)[index];
++}
++static uint32_t expected_pixel(const DG_Job *j,uint32_t x,uint32_t y)
++{
++  if(x<j->dx||x-j->dx>=j->width||y<j->dy||y-j->dy>=j->height) return j->dst->format==2U?0xA55AU:0x1A2B3C4DU;
++  if(j->operation==DG_FILL) return j->color;
++  uint32_t fx=x-j->dx+j->fx,fy=y-j->dy+j->fy;
++  if(j->operation==DG_COPY) return pattern565(fx,fy);
++  if(j->operation==DG_PFC) return j->fg->format==2U?DG_Expand565(pattern565(fx,fy)):DG_Quantize565(pattern8888(fx,fy));
++  return DG_Blend565(pattern8888(fx,fy),pattern565(x-j->dx+j->bx,y-j->dy+j->by));
++}
++static uint32_t blend_close(uint16_t e,uint16_t a,uint32_t alpha)
++{
++  if(alpha==0U||alpha==255U) return e==a;
++  uint32_t shifts[]={11U,5U,0U},masks[]={31U,63U,31U};
++  for(uint32_t k=0U;k<3U;k++) {
++    int d=(int)((e>>shifts[k])&masks[k])-(int)((a>>shifts[k])&masks[k]);
++    uint32_t delta=(uint32_t)(d<0?-d:d);
++    if(delta>g_dma2d_diagnostic.blend_max_channel_difference) g_dma2d_diagnostic.blend_max_channel_difference=delta;
++    if(delta>1U) return 0U;
++  }
++  if(e!=a) g_dma2d_diagnostic.blend_rounding_pixels++;
++  return 1U;
++}
++static void verify_job(const DG_Job *j)
++{
++  for(uint32_t y=0U;y<j->dst->height;y++) for(uint32_t x=0U;x<j->dst->width;x++) {
++    uint32_t e=expected_pixel(j,x,y),a=read_pixel(j->dst,x,y);g_dma2d_diagnostic.checked_pixels++;
++    uint32_t ok=e==a;
++    if(j->operation==DG_BLEND&&x>=j->dx&&x-j->dx<j->width&&y>=j->dy&&y-j->dy<j->height)
++      ok=blend_close((uint16_t)e,(uint16_t)a,pattern8888(x-j->dx+j->fx,y-j->dy+j->fy)>>24);
++    if(!ok) mismatch(j->dst->address+(y*j->dst->width+x)*(j->dst->format==2U?2U:4U),e,a);
++  }
++  /* Whole source buffers are checked against their generators, not copied RAM. */
++  for(uint32_t y=0U;y<320U;y++) for(uint32_t x=0U;x<240U;x++) {
++    uint32_t e=pattern565(x,y),a=read_pixel(&dg_scratch_a,x,y);
++    if(e!=a) mismatch(dg_scratch_a.address+2U*(y*240U+x),e,a);
++  }
++  for(uint32_t y=0U;y<64U;y++) for(uint32_t x=0U;x<64U;x++) {
++    uint32_t e=pattern8888(x,y),a=read_pixel(&dg_argb_source,x,y);
++    if(e!=a) mismatch(dg_argb_source.address+4U*(y*64U+x),e,a);
++  }
++  guards_check();if(g_dma2d_diagnostic.state==LCD_STATE_FAIL) DG_DiagnosticStop();
++  g_dma2d_diagnostic.tests_passed++;
++}
++static void copy_pfc_blend_tests(void)
++{
++  g_dma2d_diagnostic.stage=4U;prepare_sources(0U);
++  static const uint16_t sizes[][2]={{240,320},{8,8},{16,16},{64,64},{120,80},{239,1},{1,319}};
++  DG_Job j={.operation=DG_COPY,.fg=&dg_scratch_a,.dst=&dg_scratch_b};
++  for(uint32_t k=0U;k<7U;k++) {
++    j.width=sizes[k][0];j.height=sizes[k][1];
++    j.fx=(240U-j.width)/3U;j.fy=(320U-j.height)/4U;
++    j.dx=240U-j.width;j.dy=320U-j.height;
++    prepare_dest(j.dst);execute(&j,0U);verify_job(&j);
++  }
++  g_dma2d_diagnostic.stage_pass_mask|=1U<<4;DG_Checkpoint();
++  g_dma2d_diagnostic.stage=5U;prepare_sources(1U);
++  j=(DG_Job){.operation=DG_PFC,.fg=&dg_scratch_a,.dst=&dg_argb_destination,
++    .fx=73U,.fy=117U,.width=64U,.height=64U};
++  prepare_dest(j.dst);execute(&j,0U);verify_job(&j);
++  j=(DG_Job){.operation=DG_PFC,.fg=&dg_argb_source,.dst=&dg_scratch_b,
++    .dx=13U,.dy=41U,.width=64U,.height=64U};
++  prepare_dest(j.dst);execute(&j,0U);verify_job(&j);
++  g_dma2d_diagnostic.stage_pass_mask|=1U<<5;DG_Checkpoint();
++  g_dma2d_diagnostic.stage=6U;prepare_sources(3U);
++  j=(DG_Job){.operation=DG_BLEND,.fg=&dg_argb_source,.bg=&dg_scratch_a,.dst=&dg_scratch_b,
++    .bx=37U,.by=49U,.dx=131U,.dy=213U,.width=64U,.height=64U};
++  prepare_dest(j.dst);execute(&j,0U);verify_job(&j);
++  g_dma2d_diagnostic.stage_pass_mask|=1U<<6;DG_Checkpoint();
++}
++static void irq_tests(void)
++{
++  g_dma2d_diagnostic.stage=7U;
++  DG_Job j={.operation=DG_FILL,.dst=&dg_scratch_b,.width=240U,.height=320U,.color=0xF81FU};
++  prepare_dest(j.dst);
++  if(DG_Start(&j,1U)!=DG_OK) DG_DiagnosticStop();
++  if(g_dma2d_diagnostic.async_inflight&&(DMA2D->CR&DMA2D_CR_START)) g_dma2d_diagnostic.async_returned_pending++;
++  if(DG_Start(&j,1U)!=DG_BUSY) {DG_Fail(DG_VERIFY);DG_DiagnosticStop();}
++  if(DG_Wait(50U)!=DG_OK) DG_DiagnosticStop();
++  verify_fill(&j,0xA55AU);
++  prepare_sources(0U);
++  j=(DG_Job){.operation=DG_COPY,.fg=&dg_scratch_a,.dst=&dg_scratch_b,.width=240U,.height=320U};
++  prepare_dest(j.dst);execute(&j,1U);verify_job(&j);
++  /* Negative API tests reject invalid jobs before touching peripheral registers. */
++  DG_Registers before,after;DG_Snapshot(&before);
++  static const uint32_t bad_widths[]={0U,241U,0xFFFFFFFFU};
++  for(uint32_t i=0U;i<3U;i++) {
++    j.width=bad_widths[i];if(DG_Start(&j,0U)!=DG_INVALID) {DG_Fail(DG_VERIFY);DG_DiagnosticStop();}
++  }
++  j.width=240U;j.fg=&dg_scratch_b;
++  if(DG_Start(&j,0U)!=DG_INVALID) {DG_Fail(DG_VERIFY);DG_DiagnosticStop();}
++  DG_Surface ccm={0x10000000U,240U,320U,2U};j.fg=&ccm;
++  if(DG_Start(&j,0U)!=DG_INVALID) {DG_Fail(DG_VERIFY);DG_DiagnosticStop();}
++  DG_Snapshot(&after);
++  const uint32_t *a=(const uint32_t *)&before,*b=(const uint32_t *)&after;
++  for(uint32_t i=0U;i<sizeof(before)/4U;i++) if(a[i]!=b[i]) {DG_Fail(DG_VERIFY);DG_DiagnosticStop();}
++  if(g_dma2d_diagnostic.irq_count<2U||!g_dma2d_diagnostic.async_returned_pending) {DG_Fail(DG_VERIFY);DG_DiagnosticStop();}
++  g_dma2d_diagnostic.stage_pass_mask|=1U<<7;DG_Checkpoint();
++}
++static uint32_t display_start_tick_ms,display_last_animation_tick_ms,display_x_pixels;
++static void snapshot_configuration(uint32_t before)
++{
++  /* RM0090 37.7.5,16.7: status captured, only configuration requires invariance. */
++  SDRAM_RegisterSnapshot f={.sdcr1=FMC_Bank5_6->SDCR[0],.sdcr2=FMC_Bank5_6->SDCR[1],
++    .sdtr1=FMC_Bank5_6->SDTR[0],.sdtr2=FMC_Bank5_6->SDTR[1],.sdrtr=FMC_Bank5_6->SDRTR,.sdsr=FMC_Bank5_6->SDSR};
++  LCD_RegisterSnapshot l={.sscr=LTDC->SSCR,.bpcr=LTDC->BPCR,.awcr=LTDC->AWCR,.twcr=LTDC->TWCR,
++    .gcr=LTDC->GCR,.srcr=LTDC->SRCR,.ier=LTDC->IER,.isr=LTDC->ISR,.cpsr=LTDC->CPSR,.cdsr=LTDC->CDSR,
++    .l1cr=LTDC_Layer1->CR,.l1whpcr=LTDC_Layer1->WHPCR,.l1wvpcr=LTDC_Layer1->WVPCR,
++    .l1pfcr=LTDC_Layer1->PFCR,.l1cacr=LTDC_Layer1->CACR,.l1bfcr=LTDC_Layer1->BFCR,
++    .l1cfbar=LTDC_Layer1->CFBAR,.l1cfblr=LTDC_Layer1->CFBLR,.l1cfblnr=LTDC_Layer1->CFBLNR,.l2cr=LTDC_Layer2->CR};
++  if(before) {g_dma2d_diagnostic.fmc_before=f;g_dma2d_diagnostic.ltdc_before=l;}
++  else {
++    g_dma2d_diagnostic.fmc_after=f;g_dma2d_diagnostic.ltdc_after=l;
++    const volatile SDRAM_RegisterSnapshot *a=&g_dma2d_diagnostic.fmc_before;
++    g_dma2d_diagnostic.fmc_unchanged=f.sdcr1==a->sdcr1&&f.sdcr2==a->sdcr2&&f.sdtr1==a->sdtr1&&f.sdtr2==a->sdtr2&&f.sdrtr==a->sdrtr;
++    const volatile LCD_RegisterSnapshot *b=&g_dma2d_diagnostic.ltdc_before;
++    if(!g_dma2d_diagnostic.fmc_unchanged||l.sscr!=b->sscr||l.bpcr!=b->bpcr||l.awcr!=b->awcr||l.twcr!=b->twcr
++       ||l.gcr!=b->gcr||l.ier!=b->ier||l.l1cr!=b->l1cr||l.l1whpcr!=b->l1whpcr||l.l1wvpcr!=b->l1wvpcr
++       ||l.l1pfcr!=b->l1pfcr||l.l1cacr!=b->l1cacr||l.l1bfcr!=b->l1bfcr||l.l1cfbar!=b->l1cfbar
++       ||l.l1cfblr!=b->l1cfblr||l.l1cfblnr!=b->l1cfblnr||l.l2cr!=b->l2cr) DG_Fail(DG_CONFIG_CHANGED);
++  }
++  g_dma2d_diagnostic.ltdc_fifo_errors=g_lcd_diagnostic.fifo_underrun_count;
++  g_dma2d_diagnostic.ltdc_transfer_errors=g_lcd_diagnostic.transfer_error_count;
++}
++static uint16_t copy_image_pixel(uint32_t x,uint32_t y)
++{
++  if(x<16U&&y<16U) return 0xF800U;
++  if(x>=224U&&y<16U) return 0x07E0U;
++  if(x<16U&&y>=304U) return 0x001FU;
++  if(x>=224U&&y>=304U) return 0xFFE0U;
++  if(x==0U||x==239U||y==0U||y==319U) return 0xFFFFU;
++  return ((x/8U+y/8U)&1U)?0xFFFFU:0x0000U;
++}
++static void screen_rect(uint32_t x,uint32_t y,uint32_t w,uint32_t h,uint16_t color)
++{
++  DG_Job j={.operation=DG_FILL,.dst=&dg_framebuffer,.dx=x,.dy=y,.width=w,.height=h,.color=color};execute(&j,0U);
++}
++static void display_image(uint32_t image)
++{
++  static const uint16_t colors[]={0U,0xFFFFU,0xF800U,0x07E0U,0x001FU};
++  static const uint16_t bars[]={0xF800U,0x07E0U,0x001FU,0xFFE0U,0x07FFU,0xF81FU};
++  g_dma2d_diagnostic.display_phase=image;
++  if(image<5U) screen_rect(0U,0U,240U,320U,colors[image]);
++  else if(image==5U) {
++    for(uint32_t i=0U;i<6U;i++) screen_rect(i*40U,0U,40U,320U,bars[i]);
++  } else if(image==6U||image==9U) {
++    screen_rect(0U,0U,240U,320U,0U);
++    for(uint32_t x=24U;x<240U;x+=24U) screen_rect(x,0U,1U,320U,0x4208U);
++    for(uint32_t y=32U;y<320U;y+=32U) screen_rect(0U,y,240U,1U,0x4208U);
++    screen_rect(0U,0U,240U,1U,0xFFFFU);screen_rect(0U,319U,240U,1U,0xFFFFU);
++    screen_rect(0U,0U,1U,320U,0xFFFFU);screen_rect(239U,0U,1U,320U,0xFFFFU);
++    if(image==6U) {
++      screen_rect(3U,3U,7U,13U,0xF800U);screen_rect(101U,93U,37U,29U,0x07E0U);
++      screen_rect(208U,272U,31U,47U,0x001FU);
++    } else {
++      screen_rect(1U,144U,238U,32U,0U);display_x_pixels=1U;
++      screen_rect(display_x_pixels,152U,16U,16U,0xF81FU);
++    }
++  } else if(image==7U) {
++    volatile uint16_t *a=(volatile uint16_t *)(uintptr_t)dg_scratch_a.address;
++    for(uint32_t y=0U;y<320U;y++) for(uint32_t x=0U;x<240U;x++) a[y*240U+x]=copy_image_pixel(x,y);
++    __DSB();DG_Job j={.operation=DG_COPY,.fg=&dg_scratch_a,.dst=&dg_framebuffer,.width=240U,.height=320U};execute(&j,0U);
++  } else if(image==8U) {
++    prepare_sources(3U);
++    DG_Job j={.operation=DG_BLEND,.fg=&dg_argb_source,.bg=&dg_scratch_a,.dst=&dg_scratch_b,.width=64U,.height=64U};
++    execute(&j,0U);screen_rect(0U,0U,240U,320U,0U);
++    j=(DG_Job){.operation=DG_COPY,.fg=&dg_scratch_b,.dst=&dg_framebuffer,.dx=88U,.dy=128U,.width=64U,.height=64U};execute(&j,0U);
++  }
++  g_dma2d_diagnostic.stage=8U;
++  display_start_tick_ms=HAL_GetTick();display_last_animation_tick_ms=display_start_tick_ms;
++}
++/* Equivalent useful pixel work, O2 only for this CPU baseline. Volatile keeps
++ * real SDRAM accesses; no diagnostic write or pattern generation per pixel. */
++__attribute__((optimize("O2"),noinline)) static void cpu_operation(const DG_Job *j)
++{
++  uint32_t out_stride=j->dst->width,fg_stride=j->fg?j->fg->width:0U,bg_stride=j->bg?j->bg->width:0U;
++  volatile uint16_t *out16=(volatile uint16_t *)(uintptr_t)j->dst->address;
++  volatile uint32_t *out32=(volatile uint32_t *)(uintptr_t)j->dst->address;
++  volatile const uint16_t *fg16=(volatile const uint16_t *)(uintptr_t)(j->fg?j->fg->address:0U);
++  volatile const uint32_t *fg32=(volatile const uint32_t *)(uintptr_t)(j->fg?j->fg->address:0U);
++  volatile const uint16_t *bg16=(volatile const uint16_t *)(uintptr_t)(j->bg?j->bg->address:0U);
++  for(uint32_t y=0U;y<j->height;y++) {
++    uint32_t oi=(y+j->dy)*out_stride+j->dx,fi=(y+j->fy)*fg_stride+j->fx,bi=(y+j->by)*bg_stride+j->bx;
++    if(j->operation==DG_FILL) {for(uint32_t x=0U;x<j->width;x++) out16[oi+x]=j->color;}
++    else if(j->operation==DG_COPY) {for(uint32_t x=0U;x<j->width;x++) out16[oi+x]=fg16[fi+x];}
++    else if(j->operation==DG_BLEND) {for(uint32_t x=0U;x<j->width;x++) out16[oi+x]=DG_Blend565(fg32[fi+x],bg16[bi+x]);}
++    else if(j->dst->format==0U) {for(uint32_t x=0U;x<j->width;x++) out32[oi+x]=DG_Expand565(fg16[fi+x]);}
++    else {for(uint32_t x=0U;x<j->width;x++) out16[oi+x]=DG_Quantize565(fg32[fi+x]);}
++  }
++  __DSB();
++}
++static void benchmarks(void)
++{
++  g_dma2d_diagnostic.stage=9U;
++  static const uint16_t dimensions[][2]={{16,16},{64,64},{240,320},{64,64},{240,320},{64,64},{64,64},{64,64}};
++  for(uint32_t b=0U;b<DMA2D_BENCH_COUNT;b++) {
++    DG_Job j={.operation=b<3U?DG_FILL:b<5U?DG_COPY:b<7U?DG_PFC:DG_BLEND,
++      .dst=b==5U?&dg_argb_destination:&dg_scratch_b,
++      .fg=b>=6U?&dg_argb_source:&dg_scratch_a,.bg=&dg_scratch_a,
++      .width=dimensions[b][0],.height=dimensions[b][1],.color=0x39E7U};
++    if(b==5U) {j.fx=73U;j.fy=117U;}
++    else if(j.width<240U) {j.dx=13U;j.dy=41U;}
++    prepare_sources(b==7U?3U:1U);
++    volatile DG_Benchmark *r=&g_dma2d_diagnostic.benchmarks[b];
++    r->operation=j.operation;r->width=j.width;r->height=j.height;
++    prepare_dest(j.dst);cpu_operation(&j);verify_job(&j);
++    prepare_dest(j.dst);execute(&j,0U);verify_job(&j); /* Warm both paths. */
++    for(uint32_t n=0U;n<DMA2D_BENCH_SAMPLES;n++) {
++      prepare_dest(j.dst);__DSB();uint32_t t=DWT->CYCCNT;
++      cpu_operation(&j);uint32_t cpu=DWT->CYCCNT-t;
++      verify_job(&j); /* All verification outside timing. */
++      prepare_dest(j.dst);__DSB();t=DWT->CYCCNT;
++      execute(&j,0U);uint32_t total=DWT->CYCCNT-t;
++      r->raw[n]=(DG_Sample){.cpu=cpu,.setup=g_dma2d_diagnostic.setup_cycles,
++        .launch=g_dma2d_diagnostic.launch_cycles,.tail=g_dma2d_diagnostic.tail_cycles,.total=total};
++      r->samples++;g_dma2d_diagnostic.cpu_cycles=cpu;g_dma2d_diagnostic.dma2d_cycles=total;
++      verify_job(&j);
++    }
++  }
++  g_dma2d_diagnostic.stage_pass_mask|=1U<<9;DG_Checkpoint();
++}
++static void verify_framebuffer(void)
++{
++  for(uint32_t y=0U;y<320U;y++) for(uint32_t x=0U;x<240U;x++) {
++    uint16_t e=copy_image_pixel(x,y),a=(uint16_t)read_pixel(&dg_framebuffer,x,y);
++    if(e!=a) mismatch(dg_framebuffer.address+2U*(y*240U+x),e,a);
++  }
++  g_dma2d_diagnostic.framebuffer_checks++;guards_check();
++  if(g_dma2d_diagnostic.state==LCD_STATE_FAIL) DG_DiagnosticStop();
++}
++static void concurrent_load(void)
++{
++  g_dma2d_diagnostic.stage=10U;
++  display_image(7U);g_dma2d_diagnostic.stage=10U;verify_framebuffer();
++  /* J1: LTDC + DMA2D, without concurrent CPU writes. */
++  DG_Job j={.operation=DG_FILL,.dst=&dg_scratch_a,.width=240U,.height=320U};
++  for(uint32_t n=0U;n<64U;n++) {
++    j.color=(uint16_t)(n*0x1357U);execute(&j,0U);
++    volatile uint16_t *p=(volatile uint16_t *)(uintptr_t)j.dst->address;
++    for(uint32_t i=0U;i<76800U;i++) if(p[i]!=j.color) mismatch(j.dst->address+i*2U,j.color,p[i]);
++  }
++  verify_framebuffer();snapshot_configuration(0U);
++  if(g_dma2d_diagnostic.state==LCD_STATE_FAIL) DG_DiagnosticStop();
++  g_dma2d_diagnostic.stage_pass_mask|=1U<<10;DG_Checkpoint();
++  g_dma2d_diagnostic.stage=11U;
++  g_dma2d_diagnostic.stress_start_tick_ms=HAL_GetTick();
++  volatile uint16_t *cpu=(volatile uint16_t *)(uintptr_t)LCD_SDRAM_TEST_ADDRESS;
++  do {
++    uint32_t n=g_dma2d_diagnostic.stress_transfers;
++    if(n&1U) j=(DG_Job){.operation=DG_COPY,.fg=&dg_scratch_a,.dst=&dg_scratch_b,.width=240U,.height=320U};
++    else j=(DG_Job){.operation=DG_FILL,.dst=&dg_scratch_a,.width=240U,.height=320U,.color=(uint16_t)(n*0x1357U)};
++    if(DG_Start(&j,1U)!=DG_OK) DG_DiagnosticStop();
++    uint32_t overlap=0U;
++    for(uint32_t i=0U;i<2048U;i++) {
++      uint32_t active_before=DMA2D->CR&DMA2D_CR_START;
++      uint16_t e=(uint16_t)(i*0x9E37U^(i>>7)^n);
++      cpu[i]=e;__DSB();uint16_t a=cpu[i];
++      uint32_t active_after=DMA2D->CR&DMA2D_CR_START;
++      if(active_before&&active_after) {g_dma2d_diagnostic.overlap_cpu_accesses+=2U;overlap=1U;}
++      if(a!=e) mismatch(LCD_SDRAM_TEST_ADDRESS+i*2U,e,a);
++    }
++    if(overlap) g_dma2d_diagnostic.overlap_batches++;
++    if(DG_Wait(50U)!=DG_OK) DG_DiagnosticStop();
++    uint16_t e=(uint16_t)((n&1U)?(n-1U)*0x1357U:n*0x1357U);
++    volatile uint16_t *dst=(volatile uint16_t *)(uintptr_t)j.dst->address;
++    for(uint32_t i=0U;i<76800U;i++) {
++      uint16_t a=dst[i];if(a!=e) mismatch(j.dst->address+i*2U,e,a);
++    }
++    /* Separate second read catches retention/addressing errors in CPU region. */
++    for(uint32_t i=0U;i<2048U;i++) {
++      uint16_t e2=(uint16_t)(i*0x9E37U^(i>>7)^n),a=cpu[i];
++      if(a!=e2) mismatch(LCD_SDRAM_TEST_ADDRESS+i*2U,e2,a);
++    }
++    if(g_dma2d_diagnostic.state==LCD_STATE_FAIL||g_lcd_diagnostic.state==LCD_STATE_FAIL) DG_DiagnosticStop();
++    g_dma2d_diagnostic.stress_transfers++;g_dma2d_diagnostic.stress_pixels+=76800U;
++    if((n&63U)==0U) verify_framebuffer();
++    g_dma2d_diagnostic.stress_elapsed_tick_ms=HAL_GetTick()-g_dma2d_diagnostic.stress_start_tick_ms;
++  } while(g_dma2d_diagnostic.stress_elapsed_tick_ms<63000U);
++  /* +5% HAL ticks gives >60 s for previously measured +2.4% HSI error. */
++  verify_framebuffer();snapshot_configuration(0U);
++  if(!g_dma2d_diagnostic.overlap_batches||g_dma2d_diagnostic.state==LCD_STATE_FAIL) {DG_Fail(DG_VERIFY);DG_DiagnosticStop();}
++  g_dma2d_diagnostic.stage_pass_mask|=1U<<11;DG_Checkpoint();
++}
++void DG_TestRun(void)
++{
++  if(DG_Init()!=DG_OK) {DG_DiagnosticStop();}
++  guards_init();snapshot_configuration(1U);DG_Checkpoint();
++  fill_tests();copy_pfc_blend_tests();irq_tests();
++  /* Static image throughout benchmark/stress; previous destructive full test is excluded. */
++  display_image(7U);benchmarks();concurrent_load();
++  DG_Registers r;DG_Snapshot(&r);g_dma2d_diagnostic.after=r;
++  const uint32_t primask=__get_PRIMASK();__disable_irq();
++  if(g_dma2d_diagnostic.state!=LCD_STATE_FAIL&&g_lcd_diagnostic.state!=LCD_STATE_FAIL)
++    g_dma2d_diagnostic.state=LCD_STATE_PASS;
++  __set_PRIMASK(primask);
++  display_image(0U);DG_Checkpoint();
++}
++void DG_TestProcess(void)
++{
++  if(g_dma2d_diagnostic.state==LCD_STATE_FAIL||g_lcd_diagnostic.state==LCD_STATE_FAIL) DG_DiagnosticStop();
++  uint32_t now=HAL_GetTick(),phase=g_dma2d_diagnostic.display_phase;
++  if(phase==9U&&now-display_last_animation_tick_ms>=50U) {
++    screen_rect(display_x_pixels,152U,16U,16U,0U);
++    display_x_pixels=1U+(display_x_pixels-1U+4U)%223U;
++    screen_rect(display_x_pixels,152U,16U,16U,0xF81FU);
++    g_dma2d_diagnostic.animation_updates++;display_last_animation_tick_ms=now;
++  }
++  if(now-display_start_tick_ms>=(phase<5U?2000U:phase==9U?10000U:4000U)) display_image((phase+1U)%10U);
++}
+--- /dev/null
++++ b/DMA2D_INITIAL_DIAGNOSTIC.md
+@@ -0,0 +1,470 @@
++# Задание №7: DMA2D, совместная работа и производительность
++
++Дата: 2026-10-12. STM32F429I-Discovery MB1075B, STM32F429ZIT6,
++ILI9341 240×320, SDRAM IS42S16400J 8 МиБ.
++
++**Написано и собрано. CubeProgrammer подтвердил запись и сравнение Flash.
++Программная диагностика на MCU после аппаратного сброса и power-cycle: PASS.**
++Оператор подтвердил запуск цикла окончательной прошивки после полного отключения
++питания, отсутствие устойчивых дефектов и измерил PG8=81,3 МГц.
++**Задание №7: функциональный PASS в условиях этого испытания.** Чистое
++аппаратное время START→TC не отделено от программных накладных расходов наблюдения;
++это ограничение методики подробно указано ниже. Паспортная квалификация SDRAM
++при ранее измеренном C50=2,970 В не подтверждена.
++
++## Исходное состояние и версия
++
++Изучены AGENTS.md, исходники, установленный HAL и отчёты №5–6.
++Предыдущий SDRAM-тест: 8 МиБ, 37 749 211 записей, 41 944 177 чтений, ошибок 0.
++Предыдущий LCD-тест подтверждён оператором: PG7=6,1 МГц, PC6=21,8 кГц,
++PA4=66,4 Гц; изображения и анимация правильные. Успешный power-cycle
++**предыдущей LCD-прошивки** дополнительно указан оператором в задании №7
++и внесён в отчёт №6. Это не результат power-cycle DMA2D-прошивки.
++
++Базовый Git commit: `5136842800958f058ca2752f99e7b2ab0f755745`.
++Рабочее дерево содержит изменения предыдущих заданий; новый commit не создан.
++Сохранены исходный Git status, копии изменяемых файлов и исходный ELF во временной
++папке `%TEMP%\oscill-dma2d-task7\before\`.
++SHA256 исходного ELF задания №6:
++`D2693F2F2371A4F49E44562ADE42EE10D91E463BAF4CE37799E3C854C598BF5B`.
++SHA256 окончательного ELF задания №7:
++`B6ACC0F141E4F06C2C68C956090F566A82E3BD1A3857CC683089567CD91C1534`.
++
++## Изменённые файлы и порядок запуска
++
++- `Core/Inc/dma2d_graphics.h`, `Core/Src/dma2d_graphics.c`: фиксированные
++  поверхности SDRAM, проверяемый API DG_Start/DG_Wait/DG_IsBusy/DG_Snapshot,
++  режимы fill/copy/PFC/blend, HAL, IRQ callbacks, диагностика и DWT.
++- `Core/Src/dma2d_validation.c`: функциональные тесты, проверки границ,
++  CPU-эталон, 30 измерений каждой операции, графика и нагрузка.
++- `Core/Src/main.c`: после существующего LCD_ConfirmStart вызывается DG_TestRun;
++  в основном цикле DG_TestProcess заменяет только CPU-демонстрацию LCD_Process.
++  `DMA2D_DIAGNOSTIC_ENABLE=0` возвращает прежнюю LCD-демонстрацию при пересборке.
++- `Core/Src/stm32f4xx_it.c`: DMA2D_IRQHandler направлен в DG_IRQHandler;
++  HardFault дополнительно сохраняет DMA2D-диагностику. Старые SDRAM/LCD записи сохранены.
++- `Debug/Core/Src/subdir.mk`, `Debug/objects.list`: два новых C-модуля;
++  артефакты Debug обновлены сборкой.
++- `LCD_LTDC_INITIAL_DIAGNOSTIC.md`: уточнение power-cycle предыдущего этапа
++  по новым исходным данным оператора.
++- Этот отчёт и `diagnostics/task7/`: сохранённые фактические результаты.
++
++HAL DMA2D уже включён в конфигурацию и сборку. Использован существующий
++HAL_DMA2D_MspInit: только тактирование DMA2D и NVIC priority=5.
++Файл MSP не изменялся. DG_Start проверяет параметры и занятость **до** HAL;
++HAL сам не обеспечивает проверки всех границ и пересечений.
++API принимает DG_Job: операция, поверхности, координаты источников/назначения,
++размеры, RGB565-цвет, выбор polling/IRQ. DG_Status различает OK/INVALID/BUSY/
++HAL_ERROR/TIMEOUT/VERIFY/CONFIG_CHANGED/HARDFAULT. Ошибки выполнения останавливают
++тест без автоматической переинициализации; INVALID/BUSY являются отказом запуска.
++
++Последовательность: существующие MCU/GPIO/FMC и полная инициализация SDRAM
++ровно один раз → начальный framebuffer → SPI5/ILI9341 → LTDC → DMA2D →
++scratch-тесты → IRQ → статичные шахматы и бенчмарки → совместная нагрузка →
++цикл DMA2D-изображений. Полный разрушающий SDRAM-тест исключён.
++
++Контрольные хеши файлов и сравнение тел функций подтвердили неизменность
++SystemClock_Config, MX_FMC_Init, MX_LTDC_Init, MX_SPI5_Init, MX_GPIO_Init,
++всего SDRAM-модуля, `.ioc`, linker scripts, MSP и старого LCD-модуля.
++PLLSAI, тайминги SDRAM, refresh, FMC GPIO и формат framebuffer сохранены.
++ADC, Touch, UART, VSync-синхронизация, двойная буферизация, RTOS и библиотеки
++не подключались. TIM6 продолжает обслуживать HAL tick.
++
++## Документация и существенные настройки
++
++- [RM0090](https://www.st.com/resource/en/reference_manual/dm00031020.pdf),
++  Rev22: §11.3.4 — PFC и порядок байтов; §11.3.6 — blender; §11.3.7–11.3.11 —
++  выход, адреса/offset, режимы; §11.4 и §11.5 — IRQ/регистры;
++  §6.3.10 — RCC_AHB1ENR; §16.7 — LTDC; §37.7.5 — FMC.
++- Установленный `stm32f4xx_hal_dma2d.c`: HAL_DMA2D_Init/ConfigLayer,
++  Start/Start_IT/BlendingStart/BlendingStart_IT, PollForTransfer и IRQHandler.
++  CMSIS `stm32f429xx.h` использован для имён и масок регистров.
++- [Arm Cortex-M4 TRM](https://documentation-service.arm.com/static/5fce431be167456a35b36ade),
++  DWT, DWT_CTRL/DWT_CYCCNT; установленные CMSIS `core_cm4.h` и `SystemCoreClock`.
++- [Схема MB1075B](https://www.st.com/resource/en/schematic_pack/mb1075-f429i-b01_schematic.pdf)
++  и [UM1670](https://www.st.com/resource/en/user_manual/um1670-discovery-kit-with-stm32f429zi-mcu-stmicroelectronics.pdf):
++  выводы LCD и PG8 SDCLK, аппаратный reset/питание.
++
++HAL для R2M принимает цвет в представлении ARGB8888 и сам собирает OCOLR
++по выходному формату. DG_Start предварительно расширяет RGB565 в ARGB8888;
++аппаратный OCOLR затем содержит исходное RGB565-значение.
++RGB565→ARGB8888: r8=(r5<<3)|(r5>>2), g8=(g6<<2)|(g6>>4),
++b8=(b5<<3)|(b5>>2), alpha=255. Обратное направление отбрасывает младшие биты.
++FG/BG AlphaMode=NO_MODIF_ALPHA; RGB565 BG непрозрачен.
++Эталон blending: floor((FG×alpha+BG×(255−alpha))/255), затем RGB565-квантование.
++Alpha=0/255 проверяется точно; для промежуточной alpha разрешено не более
++одного младшего разряда **каждого** выходного канала. Фактически отклонений нет.
++Выходной offset=ширина поверхности−ширина прямоугольника в пикселях;
++аналогично FGOR/BGOR. HAL перенастраивает только DMA2D.
++
++## Карта памяти и защита
++
++| Назначение | Диапазон | Байты / формат |
++|---|---|---|
++| LTDC framebuffer | `0xD0000000–0xD00257FF` | 153600, RGB565 240×320 |
++| CPU-тест | `0xD0100000–0xD0100FFF` | 4096 |
++| Scratch A | `0xD0200000–0xD02257FF` | 153600, RGB565 240×320 |
++| Scratch B | `0xD0240000–0xD02657FF` | 153600, RGB565 240×320 |
++| ARGB Source | `0xD0300000–0xD0303FFF` | 16384, ARGB8888 64×64 |
++| ARGB Destination | `0xD0310000–0xD0313FFF` | 16384, ARGB8888 64×64 |
++
++Компиляционные проверки подтверждают отсутствие пересечений и выходов за 8 МиБ.
++По 32 байта защитных полуслов находятся перед и после каждого Scratch/ARGB-буфера,
++перед/после CPU-теста и после framebuffer. Перед framebuffer защитной области нет:
++он начинается с базы SDRAM. Все защитные диапазоны явно зарезервированы тестом.
++Предмет проверки — целевые поверхности целиком, источники целиком и защитные
++значения; свободные промежутки SDRAM целиком здесь не сканировались.
++
++Поверхности фиксированы и разрешены API по адресам/геометрии/формату;
++проверяются ненулевой размер, координаты, шаг, формат и выравнивание фиксированных
++адресов. Пересекающиеся охваты источника и назначения консервативно запрещены;
++semantics memmove не заявляется. CCM и произвольные адреса не разрешены.
++Для каждого частичного теста проверяется вся целевая поверхность, включая
++неизменность шаблона за пределами прямоугольника, и сохранность источников.
++Framebuffer остаётся фиксированным адресом, линкер не менялся по заданию;
++при добавлении новых потребителей эти диапазоны нужно сохранять зарезервированными.
++
++`g_dma2d_diagnostic` = `0x20000838`, **5544 байта**, внутренняя SRAM;
++`g_lcd_diagnostic` = `0x20000640`, 416 байт. Абсолютные адреса действуют только
++для указанного ELF. Стек `_estack=0x20030000`; динамической памяти нет.
++30×8 небольших записей DWT остаются в SRAM; большие пиксельные массивы не выделены.
++
++## Функциональные результаты на MCU
++
++Работа выполнялась последовательно: отдельные сборки/запуски заливок,
++синхронных операций, IRQ, визуальной демонстрации, затем окончательной диагностики.
++После каждого значимого изменения выполнена сборка. Первое предупреждение
++misleading-indentation устранено до первого аппаратного запуска; окончательная
++сборка без предупреждений. Функциональные стадии повторились в окончательном ELF.
++
++| Проверка | Условия / объём | Фактический результат |
++|---|---|---|
++| Инициализация | После NRST; DMA2DEN, START, DWT | START=0; DWT_CTRL=0x40000001, проба 2133 цикла; PASS |
++| Полные заливки | 8 цветов, по 76800 пикселей Scratch A | Все пиксели совпали; PASS |
++| Прямоугольные заливки | 1×1, 8×8, 16×16, 64×64, 120×160, 240×320, 7×13, 37×29; по 5 положений | 40 проверок, внутри/снаружи без несовпадений; PASS |
++| Copy | 240×320, 8×8, 16×16, 64×64, 120×80, 239×1, 1×319; разные координаты | 7 проверок назначения и источника; PASS |
++| PFC RGB565→ARGB8888 | 64×64, источник (73,117), stride 240→64; цвета/градиент | 4096 выходных пикселей совпали, alpha=255; PASS |
++| PFC ARGB8888→RGB565 | 64×64, назначение (13,41), stride 64→240 | 4096 пикселей и соседняя область без ошибок; PASS |
++| Blending | 64×64, FG alpha 0/128/255/градиент; независимые BG/DST | Точное совпадение, использованный допуск 0 LSB; PASS |
++| IRQ | Полная заливка и copy; Start_IT, callback, Wait | 2 IRQ, 2 передачи, успешное сравнение; PASS |
++| Возврат до завершения | После IRQ-запуска полной заливки | async_inflight=1 и START=1 зафиксированы основным кодом |
++| Занятость | Повторный запуск до DG_Wait | DG_BUSY, 1 отклонённый запуск |
++| Неверный API-запрос | Width 0/241/UINT32_MAX, совпадающие буферы, CCM | 5 DG_INVALID; DMA2D-регистры не изменились |
++| Защитные значения | Scratch/ARGB, CPU-регион, хвост framebuffer | 104896 сравнений полуслов, ошибок 0 |
++| Проверки измеряемых результатов | CPU и DMA2D, прогрев и каждый из 30 образцов | 556 проверок назначения всего, ошибок 0 |
++
++Первый ошибочный адрес/expected/actual=0/0/0; это отсутствие обнаруженной ошибки.
++Все первые снимки ошибок нулевые. Обработчики timeout/TE/CE/HardFault реализованы,
++но преднамеренный аппаратный fault injection не выполнялся. Нулевые счётчики
++не доказывают прохождение специально спровоцированных ошибок.
++
++IRQ короткий: сохраняет ISR и первый DMA2D-снимок до HAL W1C, вызывает
++HAL_DMA2D_IRQHandler и callbacks; без рисования, ожиданий и FMC-чтений.
++Успешный Start не считается завершением: состояние удерживается до DG_Wait.
++Polling сначала сохраняет/проверяет ошибочные флаги и ждёт TC с двумя пределами
++(HAL tick и DWT < номинальных 100 мс), затем вызывает HAL_PollForTransfer(0).
++Зависшее AHB-чтение программный таймаут прервать не может.
++HardFault сохраняет CFSR/HFSR/BFARVALID и BFAR только при валидности, текущую
++стадию/операцию/адреса и DMA2D-регистры; FMC в fault-path не читается.
++
++## Визуальная графика и наблюдение оператора
++
++Промежуточный визуальный ELF SHA256:
++`265F4F705F644B7E80074E4C2B7007ADADB9245B210EB8C28D7F21956C77A34E`.
++После его запуска оператор сообщил: «В общем и целом описание совпадает, но:
++прямоугольники на серой сетке разного размера, пурпурный квадрат движется между
++двумя сетками». Обе особенности предусмотрены тестом: прямоугольники 7×13,
++37×29 и 31×47; полоса y=144…175 очищена для анимации между частями сетки.
++Это наблюдение не классифицировано как дефект.
++
++Цикл около 36 HAL-секунд: чёрный/белый/красный/зелёный/синий по 2 с,
++шесть цветных полос слева направо, серая сетка/рамка/разные прямоугольники,
++шахматы с цветными углами (CPU готовит Scratch A, DMA2D копирует в framebuffer),
++64×64 blending в центре, затем движение пурпурного 16×16 квадрата.
++Очистка и рисование квадрата выполняются DMA2D, LTDC не перенастраивается.
++В окончательном ELF движение ограничено x=1…223, чтобы не затрагивать боковую рамку.
++После power-cycle окончательной прошивки оператор ответил:
++«Цикл запустился, устойчивых дефектов нет». Этот ответ фиксирует физический
++запуск и визуальный результат; программный результат дополнительно прочитан
++после завершения всех стадий. В первом attach-снимке после сообщения ещё была
++стадия 9 RUNNING, поэтому исполнитель дождался завершения без нового reset
++и только затем установил цифровой PASS второго запуска.
++Единственный framebuffer допускает небольшое tearing; VSync и двойного буфера нет.
++Фото/осциллограммы не предоставлены. Программный visual_state остаётся 0:
++приёмка человеком фиксируется в отчёте, записи в структуру для искусственного PASS нет.
++
++## DWT и производительность
++
++Получены **240 образцов**: по 30 для восьми операций. Перед каждой серией прогреты
++CPU и DMA2D; результаты каждого вызова проверены после снятия времени.
++LTDC активен, экран статичен, SDRAM и тактирование прежние, дополнительные
++потребители отсутствуют. CPU baseline и функции преобразования — O2;
++HAL и управляющий код — штатный Debug O0. Это сравнение именно этих реализаций,
++а не предельных возможностей оптимизированного HAL или CPU-ассемблера.
++Внутри CPU-цикла volatile SDRAM-чтения/записи; нет диагностического счётчика
++на каждый пиксель. DSB включает завершение CPU-записей в измеряемый интервал.
++Прерывания не маскируются; TIM6 и конкуренция с LTDC входят в разброс.
++Внутри измеряемых операций точки останова не ставились.
++
++32-битный CYCCNT свободно идёт; разность вычисляется modulo 2^32.
++Каждая короткая измеряемая операция значительно меньше периода переполнения
++около 26 с; общий тест через один CYCCNT-интервал не измеряется.
++HAL tick и время хоста используются только для общей длительности/таймаутов.
++
++Оператор после power-cycle измерил Hantek PG8 SDCLK=**81,3 МГц**.
++При сохранённом FMC SDCLK=HCLK/2 получаем **HCLK≈162,6 МГц**.
++SystemCoreClock/HAL сохраняют номинальное значение 160 МГц: оно не является
++фактическим измерением HSI. Таблицы переведены по 162,6 МГц; сами циклы
++получены в первом запуске после NRST, а частота измерена после power-cycle той
++же прошивки с неизменным RCC. Возможный дрейф HSI внутри серии и погрешность
++Hantek отдельно не измерены, поэтому микросекунды и скорости приблизительные.
++
++Для сравнения используется медиана полной длительности CPU/DMA2D.
++Все микросекунды ниже являются **расчётом из реально измеренных DWT-циклов**
++при указанной оценке частоты, а не отдельным измерением длительности Hantek.
++Отношение CPU/DMA2D не зависит от перевода частоты.
++
++| Операция | CPU, мкс, медиана ≈ | DMA2D, мкс, медиана ≈ | CPU/DMA2D |
++|---|---:|---:|---:|
++| Fill 16x16 | 24.11 | 17.08 | 1.41x |
++| Fill 64x64 | 339.98 | 74.17 | 4.58x |
++| Fill 240x320 | 6198.95 | 1086.82 | 5.70x |
++| Copy 64x64 | 1011.27 | 239.28 | 4.23x |
++| Copy 240x320 | 18721.85 | 4116.60 | 4.55x |
++| RGB565 -> ARGB8888 64x64 | 1688.61 | 306.33 | 5.51x |
++| ARGB8888 -> RGB565 64x64 | 1381.61 | 377.01 | 3.66x |
++| Blend 64x64 | 4210.36 | 535.65 | 7.86x |
++
++| Операция | CPU: min / median / max, циклы | DMA2D полный вызов: min / median / max, циклы |
++|---|---:|---:|
++| Fill 16x16 | 3715 / 3919.5 / 4234 | 2674 / 2777 / 3236 |
++| Fill 64x64 | 52703 / 55281 / 55569 | 11944 / 12059.5 / 12356 |
++| Fill 240x320 | 1002973 / 1007948.5 / 1010987 | 171923 / 176717.5 / 177490 |
++| Copy 64x64 | 159071 / 164432 / 165086 | 36023 / 38907 / 39242 |
++| Copy 240x320 | 3038147 / 3044172.5 / 3046393 | 663684 / 669359.5 / 670608 |
++| RGB565 -> ARGB8888 64x64 | 271054 / 274568.5 / 276122 | 49501 / 49810 / 50325 |
++| ARGB8888 -> RGB565 64x64 | 220029 / 224650 / 225464 | 57824 / 61302 / 61781 |
++| Blend 64x64 | 682247 / 684605 / 687801 | 86891 / 87096 / 87895 |
++
++Отдельные DMA2D-отметки:
++setup — от входа DG_Start до вызова HAL Start, включая проверки и конфигурацию;
++launch — сам HAL Start; tail — от возврата HAL Start до наблюдения TC при polling;
++total — внешний интервал всего execute (DG_Start + DG_Wait).
++Сумма отдельных медиан не обязана совпадать с медианой полной длительности.
++Окно launch+tail оценивает «вызов запуска → наблюдение завершения»; оно включает
++программирование адресов перед аппаратным START и задержку наблюдения TC.
++Tail отдельно исключает начало передачи, выполненное внутри HAL Start.
++**Точное время от установки аппаратного START до завершения на шине отдельно
++не измерено.** Эти отметки не выдаются за чистое аппаратное время.
++
++| Операция | setup, медиана циклов | launch | tail | launch+tail, медиана циклов |
++|---|---:|---:|---:|---:|
++| Fill 16x16 | 1210 | 336 | 862 | 1198 |
++| Fill 64x64 | 1210 | 336 | 10142 | 10478 |
++| Fill 240x320 | 1210 | 336 | 174797.5 | 175133.5 |
++| Copy 64x64 | 2407 | 249 | 35882 | 36131 |
++| Copy 240x320 | 2407 | 249 | 666329.5 | 666578.5 |
++| RGB565 -> ARGB8888 64x64 | 2495 | 249 | 46697 | 46946 |
++| ARGB8888 -> RGB565 64x64 | 2475 | 249 | 58204 | 58453 |
++| Blend 64x64 | 3685 | 270 | 82767 | 83037 |
++
++Скорости вычислены по медиане **полного** DMA2D-вызова; МБ — 10^6 байт,
++Мпикс — 10^6 пикселей. Fill учитывает 2 байта записи/пиксель;
++Copy — 2 байта чтения + 2 записи/пиксель. Это полезный объём пиксельных данных,
++без команд SDRAM/refresh/накладных транзакций; не измеренная загрузка физической шины.
++Среднее время/пиксель рассчитано по среднему из 30 полных длительностей.
++
++| Операция | CPU, среднее нс/пикс ≈ | DMA2D, среднее нс/пикс ≈ | DMA2D Мпикс/с ≈ | Полезный DMA2D МБ/с ≈ |
++|---|---:|---:|---:|---:|
++| Fill 16x16 | 94.24 | 66.50 | 14.99 | 29.98 |
++| Fill 64x64 | 82.73 | 18.18 | 55.23 | 110.45 |
++| Fill 240x320 | 80.69 | 14.14 | 70.66 | 141.33 |
++| Copy 64x64 | 246.21 | 58.08 | 17.12 | 68.47 |
++| Copy 240x320 | 243.73 | 53.51 | 18.66 | 74.62 |
++| RGB565 -> ARGB8888 64x64 | 412.05 | 74.89 | 13.37 | - |
++| ARGB8888 -> RGB565 64x64 | 336.81 | 91.91 | 10.86 | - |
++| Blend 64x64 | 1027.94 | 130.91 | 7.65 | - |
++
++В этом запуске ускорение составило 1,41…7,86×. Преимущество для других
++прямоугольников, частот, оптимизации и дополнительной нагрузки не заявляется.
++Сырые 30 образцов каждой серии: `diagnostics/task7/benchmark_samples.csv`;
++min/median/max/mean и исходные циклы также сохранены в `results.json`.
++
++## Совместная работа и длительная нагрузка
++
++J1: LTDC читает основной framebuffer, DMA2D выполняет 64 полные заливки Scratch A.
++После каждой CPU сравнивает все 76800 пикселей; ошибок 0.
++J2/J3: попеременные IRQ-заливка Scratch A / копирование A→B;
++CPU параллельно записывает адресозависимый шаблон и читает 4096-байтную область
++`0xD0100000`, затем повторно читает её отдельным проходом.
++CPU не обращается к изменяемой DMA2D-поверхности до завершения.
++LTDC продолжает читать неизменное изображение из framebuffer.
++
++Перекрытие установлено для пары CPU store/read, если START прочитан как 1
++**и до, и после** пары; следующая операция не стартует в этом промежутке.
++Обращения после завершения DMA2D не засчитываются как перекрытие.
++Каждая передача завершена и её назначение полностью сравнивается.
++Framebuffer проверяется по детерминированному изображению целиком, а не по хешу.
++
++| Показатель | После диагностического запуска |
++|---|---:|
++| Нагрузочные передачи | 2305 |
++| Нагрузочные пиксели | 177024000 |
++| Нагрузочное время HAL ticks | 63006 |
++| Время хоста между контрольными точками до/после нагрузки | 62646 мс |
++| Передачи с подтверждённым CPU-перекрытием | 2305 |
++| CPU store/read, учтённые во время START=1 | 6468708 доступов |
++| Полные проверки неизменности framebuffer | 40 |
++| Всего запущено / завершено DMA2D | 2680 / 2680 |
++| Обслуженные IRQ | 2307 |
++| Всего обработано DMA2D пикселей | 188953583 |
++| DMA2D errors / timeouts / verification errors | 0 / 0 / 0 |
++| LTDC FIFO underrun / transfer errors | 0 / 0 |
++| HardFault / CFSR / HFSR | 0 / 0 / 0 |
++| fmc_unchanged | 1 |
++| state / stage_pass_mask | 2 (цифровой PASS) / 0xEFC |
++
++Время хоста включает задержку опроса остановки (около 1 с); это не точное время
++нагрузки. 63006 HAL ticks при прежнем диапазоне HCLK 161,8…163,8 МГц
++соответствуют примерно 61,55…62,31 с, то есть условие ≥60 с выполнено.
++Полные CPU-сравнения между передачами входят в нагрузочный интервал:
++это повторение операций с проверкой, не 100% duty-cycle DMA2D.
++IRQ-count учитывает callback-завершения стрессовых передач плюс 2 IRQ-теста;
++polling-передачи не требуют TC IRQ. LTDC sticky-флаги не являются точным
++счётчиком событий, которые могли бы слиться до обслуживания.
++Системных нарушений обслуживания LTDC при этой нагрузке не обнаружено.
++
++## Снимки регистров и доступ отладчика
++
++Одна сессия OpenOCD для окончательного запуска, SWD 950 кГц,
++ST-LINK V2J40S0, serial `50FF71065066505159352487`.
++Подключение под NRST; автоматические записи examine-end/reset-init отключены.
++CubeProgrammer перед сессией закрыт; параллельного GDB/ST-LINK-клиента не было.
++CubeIDE был открыт, активного GDB-сервера не обнаружено.
++Исходные 64 КиБ Flash сохранены до первой записи задания №7.
++Полный запуск от аппаратного reset до конечной точки занял около 179 с по хосту.
++После снимков исполнение возобновлено, OpenOCD отключён, вывод продолжает цикл.
++PC на конечной точке DG_Checkpoint=`0x08005A30`, Thread mode, core halted.
++Отладчик читал SRAM и регистры; SDRAM-проверки и пиксельные чтения делал CPU.
++
++| DMA2D | До тестов, программный снимок | После тестов, до стартовой чёрной заливки |
++|---|---|---|
++| CR | `0x00030000` | `0x00032100` |
++| ISR | `0x00000000` | `0x00000000` |
++| OPFCCR | `0x00000002` | `0x00000002` |
++| OCOLR | `0x00000000` | `0x00000F00` |
++| OMAR | `0x00000000` | `0xD0200000` |
++| OOR | `0x00000000` | `0x00000000` |
++| NLR | `0x00000000` | `0x00F00140` |
++| FGMAR | `0x00000000` | `0xD0200000` |
++| FGOR | `0x00000000` | `0x00000000` |
++| FGPFCCR | `0x00000000` | `0xFF000002` |
++| BGMAR | `0x00000000` | `0xD0200000` |
++| BGOR | `0x00000000` | `0x000000B0` |
++| BGPFCCR | `0x00000000` | `0xFF000002` |
++
++После этой таблицы выполняется чёрная заливка framebuffer для цикла изображений;
++во внешнем ST-LINK-снимке OCOLR=0, OMAR=0xD0000000. Изменение рабочих регистров
++DMA2D ожидаемо. IFCR W1C обрабатывается только после сохранения ошибки.
++
++| FMC | До | После |
++|---|---|---|
++| SDCR1 | `0x00002AD0` | `0x00002AD0` |
++| SDCR2 | `0x000001D4` | `0x000001D4` |
++| SDTR1 | `0x0F1F6FFF` | `0x0F1F6FFF` |
++| SDTR2 | `0x01020361` | `0x01020361` |
++| SDRTR | `0x000008A2` | `0x000008A2` |
++| SDSR | `0x00000000` | `0x00000000` |
++
++Программные FMC_SDSR до/после=0. Во внешнем чтении после тестов SDSR=0x20:
++BUSY=1, MODES2=00 (normal), RE=0. BUSY — текущий статус, неизменность этого
++бита не требуется; конфигурационные SDCR/SDTR/SDRTR совпали.
++
++| LTDC | До | После |
++|---|---|---|
++| GCR | `0x00002221` | `0x00002221` |
++| IER | `0x00000006` | `0x00000006` |
++| ISR | `0x00000000` | `0x00000000` |
++| L1CR | `0x00000001` | `0x00000001` |
++| L1PFCR | `0x00000002` | `0x00000002` |
++| L1CFBAR | `0xD0000000` | `0xD0000000` |
++| L1CFBLR | `0x01E001E3` | `0x01E001E3` |
++| L1CFBLNR | `0x00000140` | `0x00000140` |
++
++RCC_PLLCFGR=0x07005010, CFGR=0x0000D40A, PLLSAICFGR=0x44003000,
++DCKCFGR=0x00020000 до и после. RCC_AHB1ENR=0x009000FF, DMA2DEN=1;
++RCC_AHB3ENR=1, FMCEN=1; RCC_APB2ENR=0x04104000.
++Внешние CFSR/HFSR=0/0, чтение всех указанных регистров успешно.
++Снимок прежнего `g_lcd_diagnostic` сохранён: его error counters=0,
++state=RUNNING, потому что CPU-цикл прежней демонстрации LCD_Process здесь
++не выполняется. Итог DMA2D следует смотреть по актуальному g_dma2d_diagnostic.
++
++## Сборка, приёмка и ограничения
++
++GNU Tools for STM32 14.3, Debug. text=32892, data=12, bss=9216 байт;
++сборка exit=0, предупреждений/ошибок GCC нет. Flash sectors 0…2 записаны,
++CubeProgrammer V2.13 сообщил Download verified successfully.
++В линкере `_Min_Stack_Size=0x400` — минимальный резерв при линковке,
++а не аппаратный предел стека. По `.su` DG_Init использует 5624 байта локального
++стека (обнуление фиксированной диагностической структуры в Debug O0);
++DG_TestRun — 80 байт, другие функции новых модулей — не более 256 байт каждая.
++Это укладывается в свободную внутреннюю SRAM между статическими данными и
++_estack; линкер не менялся. Полный максимум с вложенными HAL/IRQ не измерялся.
++Диагностические структуры и стек находятся в SRAM, не в CCM/SDRAM.
++
++| Критерий | Основание | Статус |
++|---|---|---|
++| Старт после аппаратного reset | Полный первый запуск из Reset_Handler, state=2 | PASS, диагностика MCU |
++| Старт после power-cycle | Отключение питания выполнено/подтверждено оператором; второй запуск state=2 | PASS, человек + MCU |
++| Все режимы, шаг строки, границы, IRQ | Фактические сравнения пикселей и защитных значений, счётчики | PASS, диагностика MCU |
++| Графика и анимация | Оператор описал предусмотренные изображения, затем подтвердил цикл без устойчивых дефектов | PASS, визуально человеком |
++| Производительность | По 30 образцов каждой из 8 операций, DWT и измеренный SDCLK | Измерена на MCU; мкс/скорости рассчитаны |
++| Совместная работа ≥60 с | Первый тест 63006 HAL ticks, второй 63025; START/CPU-перекрытие | PASS, диагностика MCU |
++| FMC/LTDC, доступ ST-LINK, HardFault | Регистры доступны, конфигурация прежняя, CFSR/HFSR=0 | PASS, чтение на плате |
++
++После power-cycle attach выполнялся **без reset и без записи Flash**.
++Первый снимок — stage=9/state=1, тест ещё выполнялся. Следующая сессия только
++читала состояние SRAM, дождалась state=2 и остановила ядро для снимка:
++PC=0x08007B7E, Thread mode. Завершение второго запуска:
++transfer_count=completed_count=2681, IRQ=2308, stress_transfers=2306,
++stress_elapsed_tick_ms=63025, stress_pixels=177100800, overlap_batches=2306,
++overlap_cpu_accesses=6473208, framebuffer_checks=40. Снова errors/timeouts/
++verification/LTDC FIFO/LTDC transfer/HardFault=0, fmc_unchanged=1,
++SCB CFSR/HFSR=0/0. FMC_SDSR=0 при внешнем чтении. MCU возобновлён,
++OpenOCD отключён. Снимки/вторые бенчмарки сохранены отдельно в
++`diagnostics/task7/power-cycle-results.json`; основные таблицы выше относятся
++к первому полному диагностическому запуску, результаты двух запусков не смешаны.
++
++Отрицательные INVALID/BUSY-запросы проверены фактически. Обработка настоящих
++аппаратных TE/CE/timeout предусмотрена, но они в обоих запусках не возникли
++и намеренно не провоцировались; это не отдельный fault-injection PASS.
++Функциональная приёмка относится к нормальному выполнению перечисленных
++операций и данной нагрузке. Точное START→TC-время, паспортные условия SDRAM
++и последующие подсистемы этим PASS не охватываются.
++
++Ограничения: ранее измеренные C50=2,970 В ниже минимальных 3,0 В для SDRAM;
++напряжение повторно в задании №7 не измерялось. ST-LINK около 2,88 В является
++показанием отладчика, не измерением Fluke на C50. Функциональный результат
++не подтверждает паспортный диапазон питания/температуры. Тайминги и питание
++на основании предположений не менялись. Не испытывались конкуренция с ADC,
++другие частоты/форматы и длительность за пределами этого нагрузочного теста.
++Пиксельную геометрию прибором отдельно не измеряли; визуальная оценка оператора
++не является измерением каждого пикселя. Точное аппаратное время START→TC
++и искусственно вызванные TE/CE/timeout остаются не измеренными/не испытанными.
++
++Для независимого просмотра: актуальный ELF, attach без записи Flash/reset,
++единственный ST-LINK-клиент; проверить `g_dma2d_diagnostic` (state=2,
++errors=0, fmc_unchanged=1, benchmarks[0…7].samples=30), старую LCD-диагностику,
++RCC/FMC/LTDC и CFSR/HFSR. Ничего не записывать для изменения статуса.
++При ошибке сохранить стадию, первые снимки и описание картинки; тест не
++перенастраивает периферию и не перезапускается автоматически.
++VALIDATION_LOG.md человек связывает с этим ELF SHA256 и своими наблюдениями;
++агент журнал не изменял. Новый этап не начат.
++
++Сохранённые результаты: `diagnostics/task7/results.json`,
++`benchmark_samples.csv`, `diag-INITIAL.bin`, `diag-FINAL.bin`,
++`lcd-INITIAL.bin`, `lcd-FINAL.bin`, `board-run.log`, `run-performance.tcl`.
++Дополнительно: `power-cycle-results.json`, `diag-POWER_CYCLE.bin`,
++`diag-POWER_CYCLE_FINAL.bin`, `lcd-POWER_CYCLE_FINAL.bin`,
++`board-power-cycle-completion.log`, `run-power-cycle-completion.tcl`, `source.patch`.
++Дополнительные промежуточные сборки, логи Flash/OpenOCD, контрольные хеши,
++резервная копия Flash и исходные файлы: `%TEMP%\oscill-dma2d-task7\`.

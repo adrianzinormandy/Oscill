@@ -81,10 +81,6 @@ void Error_Handler(void);
 #define SPI5_MOSI_GPIO_Port GPIOF
 #define ENABLE_Pin GPIO_PIN_10
 #define ENABLE_GPIO_Port GPIOF
-#define PH0_OSC_IN_Pin GPIO_PIN_0
-#define PH0_OSC_IN_GPIO_Port GPIOH
-#define PH1_OSC_OUT_Pin GPIO_PIN_1
-#define PH1_OSC_OUT_GPIO_Port GPIOH
 #define SDNWE_Pin GPIO_PIN_0
 #define SDNWE_GPIO_Port GPIOC
 #define NCS_MEMS_SPI_Pin GPIO_PIN_1
@@ -107,8 +103,6 @@ void Error_Handler(void);
 #define ACP_RST_GPIO_Port GPIOA
 #define OTG_FS_PSO_Pin GPIO_PIN_4
 #define OTG_FS_PSO_GPIO_Port GPIOC
-#define OTG_FS_OC_Pin GPIO_PIN_5
-#define OTG_FS_OC_GPIO_Port GPIOC
 #define R3_Pin GPIO_PIN_0
 #define R3_GPIO_Port GPIOB
 #define R6_Pin GPIO_PIN_1
@@ -151,14 +145,6 @@ void Error_Handler(void);
 #define G4_GPIO_Port GPIOB
 #define G5_Pin GPIO_PIN_11
 #define G5_GPIO_Port GPIOB
-#define OTG_HS_ID_Pin GPIO_PIN_12
-#define OTG_HS_ID_GPIO_Port GPIOB
-#define VBUS_HS_Pin GPIO_PIN_13
-#define VBUS_HS_GPIO_Port GPIOB
-#define OTG_HS_DM_Pin GPIO_PIN_14
-#define OTG_HS_DM_GPIO_Port GPIOB
-#define OTG_HS_DP_Pin GPIO_PIN_15
-#define OTG_HS_DP_GPIO_Port GPIOB
 #define D13_Pin GPIO_PIN_8
 #define D13_GPIO_Port GPIOD
 #define D14_Pin GPIO_PIN_9
