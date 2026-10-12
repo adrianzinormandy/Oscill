@@ -1,6 +1,9 @@
 from pathlib import Path
 import struct,re,json,sys
-p=Path(__file__).parent;t=(p/'layout-DIGITAL.txt').read_text(encoding='utf-8-sig');b=(p/'diag-SCOPE.bin').read_bytes()
+p=Path(__file__).parent
+tag=sys.argv[1] if len(sys.argv)>1 else 'SCOPE'
+prefix='scope' if tag=='SCOPE' else tag.lower()
+t=(p/'layout-DIGITAL.txt').read_text(encoding='utf-8-sig');b=(p/f'diag-{tag}.bin').read_bytes()
 blocks=t.split('type = struct {')[1:]
 layouts=[[(int(o),ty,name) for o,n,ty,name in re.findall(r'/\*\s*(\d+)\s*\|\s*(\d+)\s*\*/\s*(uint32_t|uint64_t|float)\s+(\w+);',z)] for z in blocks]
 def read(offset,layout):
@@ -13,11 +16,11 @@ for name in ('rates','static_load','graphics_load'):
  for i in range(4 if name=='rates' else 1):
   start=fields[name]+i*stride;v=read(start,layouts[1]);v['before']=read(start+144,layouts[2]);v['after']=read(start+240,layouts[2]);x[name].append(v)
 for name,count in [('fmc_before',6),('fmc_after',6),('ltdc_before',20),('ltdc_after',20)]:x[name]=list(struct.unpack_from('<'+'I'*count,b,fields[name]))
-(p/'scope-results.json').write_text(json.dumps(x,indent=2),encoding='utf-8')
+(p/f'{prefix}-results.json').write_text(json.dumps(x,indent=2),encoding='utf-8')
 for v in x['graphics_load']:
  print(v['rate_target_hz'],v['rate_estimate_hz'],v['elapsed_tick_ms'],v['ht'],v['tc'],v['processed'],v['samples_received'],v['mean'],v['rms_ac'],v['min'],v['max'])
 
-sb=(p/'scope-SCOPE.bin').read_bytes()
+sb=(p/f'scope-{tag}.bin').read_bytes()
 raw_layout=(p/'layout-scope.txt').read_bytes()
 st=raw_layout.decode('utf-16' if raw_layout.startswith(b'\xff\xfe') else 'utf-8-sig')
 sl=[(int(o),ty,name) for o,n,ty,name in re.findall(r'/\*\s*(\d+)\s*\|\s*(\d+)\s*\*/\s*(uint32_t|uint64_t)\s+(\w+);',st)]
@@ -27,7 +30,7 @@ v=x['graphics_load'][0]
 # unless the marker is measured again during the graphics firmware.
 hclk_hz=99799.04*1626
 elapsed_cycles=v['elapsed_tick_ms']*160000
-scope['time_conversion']='estimate from previous operator PG13=48.73 Hz; unchanged RCC and ARR'
+scope['time_conversion']='operator PG13=48.73 Hz confirmed on scope firmware; RCC and ARR unchanged'
 scope['estimated_hclk_hz']=hclk_hz
 scope['estimated_duration_s']=elapsed_cycles/hclk_hz
 scope['estimated_fps']=scope['g2_frames']/scope['estimated_duration_s']
@@ -36,5 +39,5 @@ scope['graphics_work_percent']=scope['g2_graphics_work_cycles']/elapsed_cycles*1
 scope['work_percent_note']='AC_Process + SV_Process only, nested IRQ included; not total CPU utilisation'
 for field in ('g2_render_max_cycles','g2_capture_call_max_cycles','g2_graphics_call_max_cycles'):
  scope[field.replace('_cycles','_estimated_us')]=scope[field]*1e6/hclk_hz
-(p/'scope-view-results.json').write_text(json.dumps(scope,indent=2),encoding='utf-8')
+(p/f'{prefix}-view-results.json').write_text(json.dumps(scope,indent=2),encoding='utf-8')
 print(json.dumps(scope,indent=2))

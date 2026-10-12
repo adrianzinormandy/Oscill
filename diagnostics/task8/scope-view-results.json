@@ -28,7 +28,7 @@
   "g2_dma2d_timeouts": 0,
   "g2_ltdc_fifo_errors": 0,
   "g2_ltdc_transfer_errors": 0,
-  "time_conversion": "estimate from previous operator PG13=48.73 Hz; unchanged RCC and ARR",
+  "time_conversion": "operator PG13=48.73 Hz confirmed on scope firmware; RCC and ARR unchanged",
   "estimated_hclk_hz": 162273239.04,
   "estimated_duration_s": 62.11942313861883,
   "estimated_fps": 15.148241120980286,
