@@ -42,3 +42,5 @@
 "./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_fmc.o"
 "./Core/Src/dma2d_graphics.o"
 "./Core/Src/dma2d_validation.o"
+"./Core/Src/adc_capture.o"
+"./Core/Src/adc_validation.o"

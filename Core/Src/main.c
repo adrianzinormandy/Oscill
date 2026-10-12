@@ -24,6 +24,7 @@
 #include "sdram.h"
 #include "lcd.h"
 #include "dma2d_graphics.h"
+#include "adc_capture.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -151,7 +152,9 @@ int main(void)
     LCD_Fail(LCD_ERROR_LTDC_INIT); LCD_DiagnosticStop();
   }
   if (LCD_ConfirmStart() != HAL_OK) { LCD_DiagnosticStop(); }
-#if DMA2D_DIAGNOSTIC_ENABLE
+#if ADC_CAPTURE_DIAGNOSTIC_ENABLE
+  AC_TestRun();
+#elif DMA2D_DIAGNOSTIC_ENABLE
   DG_TestRun();
 #endif
 #else
@@ -169,7 +172,9 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 #if LCD_DIAGNOSTIC_ENABLE
-#if DMA2D_DIAGNOSTIC_ENABLE
+#if ADC_CAPTURE_DIAGNOSTIC_ENABLE
+    AC_TestProcess();
+#elif DMA2D_DIAGNOSTIC_ENABLE
     DG_TestProcess();
 #else
     LCD_Process();

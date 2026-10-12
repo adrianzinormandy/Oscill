@@ -25,6 +25,7 @@
 #include "sdram.h"
 #include "lcd.h"
 #include "dma2d_graphics.h"
+#include "adc_capture.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -93,6 +94,9 @@ void HardFault_Handler(void)
   SDRAM_RecordHardFault();
   LCD_RecordHardFault();
   DG_RecordHardFault();
+#if ADC_CAPTURE_DIAGNOSTIC_ENABLE
+  AC_RecordHardFault();
+#endif
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
   {
@@ -255,5 +259,9 @@ void DMA2D_IRQHandler(void)
 }
 
 /* USER CODE BEGIN 1 */
+#if ADC_CAPTURE_DIAGNOSTIC_ENABLE
+void DMA2_Stream0_IRQHandler(void) { AC_DMA_IRQHandler(); }
+void ADC_IRQHandler(void) { AC_ADC_IRQHandler(); }
+#endif
 
 /* USER CODE END 1 */

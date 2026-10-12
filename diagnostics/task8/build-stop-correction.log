@@ -1,0 +1,14 @@
+make: Entering directory 'J:/MX projects/Oscill/Debug'
+arm-none-eabi-gcc "../Core/Src/adc_capture.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F429xx -c -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/adc_capture.d" -MT"Core/Src/adc_capture.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/adc_capture.o"
+arm-none-eabi-gcc -o "oscill.elf" @"objects.list"   -mcpu=cortex-m4 -T"J:\MX projects\Oscill\STM32F429ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="oscill.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: oscill.elf
+ 
+arm-none-eabi-size  oscill.elf 
+arm-none-eabi-objdump -h -S oscill.elf  > "oscill.list"
+   text	   data	    bss	    dec	    hex	filename
+  28304	     92	  18656	  47052	   b7cc	oscill.elf
+Finished building: default.size.stdout
+ 
+Finished building: oscill.list
+ 
+make: Leaving directory 'J:/MX projects/Oscill/Debug'

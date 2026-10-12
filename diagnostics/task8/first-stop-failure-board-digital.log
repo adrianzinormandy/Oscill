@@ -1,0 +1,69 @@
+openocd.exe : Open On-Chip Debugger 0.12.0+dev-00664-g72f14cee6 (2026-04-16-14:04) [https://github.com/STMicroelectroni
+cs/OpenOCD]
+строка:30 знак:1
++ & 'I:\ST\STM32CubeIDE_2.2.0\STM32CubeIDE\plugins\com.st.stm32cube.ide ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Open On-Chip De...ronics/OpenOCD]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Licensed under GNU GPL v2
+For bug reports, read
+	http://openocd.org/doc/doxygen/bugs.html
+dapdirect_swd
+adapter speed: 1000 kHz
+srst_only separate srst_nogate srst_open_drain connect_deassert_srst
+Info : STLINK V2J40S0 (API v2) VID:PID 0483:3748
+Info : Target voltage: 2.878873
+Info : Unable to match requested speed 1000 kHz, using 950 kHz
+Info : Unable to match requested speed 1000 kHz, using 950 kHz
+Info : clock speed 950 kHz
+Info : stlink_dap_op_connect(connect)
+Info : SWD DPIDR 0x2ba01477
+Info : [stm32f4x.cpu] Cortex-M4 r0p1 processor detected
+Info : [stm32f4x.cpu] target has 6 breakpoints, 4 watchpoints
+Info : [stm32f4x.cpu] Examination succeed
+Info : gdb port disabled
+[stm32f4x.cpu] halted due to debug-request, current mode: Handler External Interrupt(54)
+xPSR: 0x01000046 pc: 0x08002634 msp: 0x2002ff50
+ADC_FINAL_STATE_0x3
+pc (/32): 0x08002634
+0x20003680: 00000002 00000003 00000006 00000005 009b1144 04d88a20 000003e8 00000038 
+0x200036a0: 00000000 00013d93 09b11440 20001e60 20002e80 00001000 00000019 0000001a 
+0x200036c0: 00000033 00000032 00000000 00000000 00000000 00000000 00000001 00000000 
+0x200036e0: 00000000 00000000 0000c800 00000000 0000000d 0000000d 00007247 00000149 
+0x20003700: 0000cc00 00000000 0000c800 00000000 00018698 00000000 0003b954 00000000 
+0x20003720: 3ff9fae1 3f79da63 00000000 00000032 00000000 00000000 00000000 00000000 
+0x40012000: 00000000 
+0x40012004: 04000000 
+0x40012008: 06000400 
+0x40012010: 00018000 
+0x4001202c: 00000000 
+0x40012034: 00000005 
+0x40012304: 00000000 
+0x40000000: 00000080 
+0x40000004: 00000020 
+0x40000028: 00000000 
+0x4000002c: 00013d93 
+0x40000024: 00003bf8 
+0x40000010: 0000001f 
+0x40026410: 00022d1e 
+0x40026414: 00000800 
+0x40026418: 4001204c 
+0x4002641c: 20001e60 
+0x40026424: 000000a0 
+0x40026400: 00000000 
+0x40023808: 0000d40a 
+0x4002388c: 00020000 
+0xa0000140: 00002ad0 
+0xa0000144: 000001d4 
+0xa0000148: 0f1f6fff 
+0xa000014c: 01020361 
+0xa0000154: 000008a2 
+0xa0000158: 00000000 
+0x40016818: 00002221 
+0x40016884: 00000001 
+0x40016894: 00000002 
+0x400168ac: d0000000 
+0xe000ed28: 00000000 
+0xe000ed2c: 00000000 
+shutdown command invoked

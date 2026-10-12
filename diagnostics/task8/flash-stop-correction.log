@@ -1,0 +1,58 @@
+      -------------------------------------------------------------------
+                       STM32CubeProgrammer v2.23.0                  
+      -------------------------------------------------------------------
+
+ST-LINK SN  : 50FF71065066505159352487
+ST-LINK FW  : V2J40S0
+Board       : --
+Voltage     : 2.88V
+SWD freq    : 950 KHz
+Connect mode: Under Reset
+Reset mode  : Hardware reset
+Device ID   : 0x419
+Revision ID : Rev Y
+Device name : STM32F42xxx/F43xxx
+NVM size    : 2 MBytes
+Device type : MCU
+Device CPU  : Cortex-M4
+BL Version  : 0x70
+
+
+
+Opening and parsing file: oscill.elf
+
+
+Memory Programming ...
+  File          : oscill.elf
+  Size          : 27.74 KB 
+  Address       : 0x08000000
+
+
+Erasing memory corresponding to segment 0:
+Erasing internal memory sectors [0 1]
+Download in Progress:
+�������������������������������������������������� 0%
+�������������������������������������������������� 100%
+
+File download complete
+Time elapsed during download operation: 00:00:01.328
+
+
+
+Verifying...
+
+
+Read progress:
+�������������������������������������������������� 50%
+�������������������������������������������������� 100%
+
+Time elapsed during verifying operation: 00:00:00.443
+
+
+Download verified successfully
+
+
+
+MCU Reset
+
+Software reset is performed
