@@ -44,9 +44,33 @@
         1.67
       ],
       "volts_unit_and_connection_reset": "confirmed by operator after conditional instruction"
+    },
+    "E2": {
+      "source": "Hantek sine 500 Hz, same 2 Vpp, +1.5 V offset",
+      "frequency_hz_range": [
+        499,
+        500
+      ],
+      "vmin_v_range": [
+        0.44,
+        0.48
+      ],
+      "vmax_v_range": [
+        2.52,
+        2.56
+      ],
+      "voltage_ranges": "operator says same as E1",
+      "PG13_hz_range": [
+        4.86,
+        4.88
+      ],
+      "Fs_from_PG13_hz_range": [
+        9953.28,
+        9994.24
+      ]
     }
   },
-  "state": "E1 sine capture recorded; digital integrity pass; DC accuracy limitation accepted; preparing E2 sine 500 Hz; task8 incomplete",
+  "state": "E1 and E2 sine captures recorded; Fs at 10 kSPS mode confirmed with PG13 marker; digital integrity pass; preparing E3 square 100 Hz; task8 incomplete",
   "implementation_git_commit": "4730acca01a8d0d587ff255257eb650440a691cf",
   "operator_decisions": {
     "DC_accuracy": "accept observed bias and noise as demonstration limitations; do not pursue precision; no calibration applied",
