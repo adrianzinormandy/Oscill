@@ -111,7 +111,7 @@
       "connection_ready": "confirmed by operator"
     }
   },
-  "state": "E1-E4 and sine500 repeats at 10/50/100 kSPS recorded; LCD and G2 pending; task8 incomplete",
+  "state": "Capture, sine LCD and G2 confirmed; square LCD and final reset/power-cycle pending; task8 incomplete",
   "implementation_git_commit": "4730acca01a8d0d587ff255257eb650440a691cf",
   "operator_decisions": {
     "DC_accuracy": "accept observed bias and noise as demonstration limitations; do not pursue precision; no calibration applied",
@@ -130,5 +130,12 @@
       "PG13_hz": 48.73,
       "Fs_measured_hz": 99799.04
     }
+  },
+  "scope": {
+    "git_commit": "b29bc2e",
+    "elf_sha256": "0FA990991E3CB4D68B163017E4B5B2808E7DBB2B3169F726A05A8E3942CC7AB3",
+    "cli_flash_verify": "completed",
+    "operator_sine_lcd": "confirmed expected waveform and no persistent defects",
+    "g2": "6054 processed blocks, 941 frames, no registered ADC/DMA/LTDC/DMA2D errors; 63002 HAL ticks"
   }
 }
