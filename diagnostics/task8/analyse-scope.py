@@ -31,6 +31,8 @@ v=x['graphics_load'][0]
 hclk_hz=99799.04*1626
 elapsed_cycles=v['elapsed_tick_ms']*160000
 scope['time_conversion']='operator PG13=48.73 Hz confirmed on scope firmware; RCC and ARR unchanged'
+if tag=='SCOPE-POWER':
+ scope['time_conversion']='estimate from operator PG13=48.73 Hz before power-cycle; RCC/ARR preserved, no new marker measurement after power-cycle'
 scope['estimated_hclk_hz']=hclk_hz
 scope['estimated_duration_s']=elapsed_cycles/hclk_hz
 scope['estimated_fps']=scope['g2_frames']/scope['estimated_duration_s']

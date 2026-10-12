@@ -111,7 +111,7 @@
       "connection_ready": "confirmed by operator"
     }
   },
-  "state": "Capture, sine/square LCD, input change, G2 and RESET confirmed; power-cycle pending; task8 incomplete",
+  "state": "Task 8 complete in operator-agreed demonstration scope; capture, LCD, G1/G2, reset and power-cycle confirmed; ADC voltage accuracy not qualified",
   "implementation_git_commit": "4730acca01a8d0d587ff255257eb650440a691cf",
   "operator_decisions": {
     "DC_accuracy": "accept observed bias and noise as demonstration limitations; do not pursue precision; no calibration applied",
@@ -141,6 +141,17 @@
     "Fs_measured_hz": 99799.04,
     "operator_square_lcd": "confirmed after actual Square selection; raw snapshot has plateaus, RMS AC 1382.369 codes, frequency 999.992 Hz",
     "reset": "operator confirmed B2 launch; new G2 no registered errors, 6054 processed blocks, 941 frames",
-    "square_source_issue": "operator confirmed generator was still sine, then switched to square; code unchanged"
+    "square_source_issue": "operator confirmed generator was still sine, then switched to square; code unchanged",
+    "power_cycle": {
+      "operator_confirmation": "Gotovo in reply to full power disconnect >=5 seconds, generator off/disconnected, PA5 grounded and LCD observation >=65 seconds",
+      "G2_elapsed_tick_ms": 63002,
+      "processed_blocks": 6054,
+      "samples_processed": 6199296,
+      "frames": 941,
+      "registered_ADC_DMA_LTDC_DMA2D_errors": 0,
+      "hardfault": 0,
+      "FMC_LTDC_configurations": "preserved",
+      "new_PG13_measurement": false
+    }
   }
 }
