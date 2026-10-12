@@ -1,0 +1,40 @@
+# Compiler intermediates. Keep makefiles and objects.list under version control.
+*.o
+*.d
+*.su
+*.cyclo
+
+# Generated firmware and disassembly from ordinary CubeIDE builds.
+# Control ELF/map/bin files in diagnostics/ remain versioned.
+/Debug/*.elf
+/Debug/*.hex
+/Debug/*.bin
+/Debug/*.map
+/Debug/*.list
+!/Debug/objects.list
+/Release/*.elf
+/Release/*.hex
+/Release/*.bin
+/Release/*.map
+/Release/*.list
+!/Release/objects.list
+
+# Temporary objects from diagnostic builds.
+/diagnostics/**/build-objects/
+
+# Eclipse workspace state; retain project files and .settings/ preferences.
+.metadata/
+
+# Python cache and editor/OS temporary files.
+__pycache__/
+*.py[cod]
+*~
+*.swp
+*.swo
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Markdown documents (including readme.md and validation reports) are not ignored.
