@@ -2,6 +2,12 @@
 #include "dma2d_graphics.h"
 #include <string.h>
 
+/* Single physical capture rate. Override only for the documented 50/100 kSPS
+ * repeats (RM0090 18.4.11-12: PSC/ARR); ADC sampling time and RCC stay unchanged. */
+#ifndef ADC_CAPTURE_PHYSICAL_RATE_HZ
+#define ADC_CAPTURE_PHYSICAL_RATE_HZ 10000U
+#endif
+
 static void fmc_snapshot(volatile SDRAM_RegisterSnapshot *s)
 {
  s->sdcr1=FMC_Bank5_6->SDCR[0];s->sdcr2=FMC_Bank5_6->SDCR[1];
@@ -71,7 +77,7 @@ void AC_TestRun(void)
   * ADC signal accuracy is assessed against operator measurements in the report,
   * not made PASS by an arbitrary threshold here. */
  g_adc_diagnostic.stage=8;
- run_rate(10000U,7000U,(AC_TestResult *)&g_adc_diagnostic.rates[0]);
+ run_rate(ADC_CAPTURE_PHYSICAL_RATE_HZ,7000U,(AC_TestResult *)&g_adc_diagnostic.rates[0]);
 #endif
  fmc_snapshot(&g_adc_diagnostic.fmc_after);
  ltdc_snapshot(&g_adc_diagnostic.ltdc_after);

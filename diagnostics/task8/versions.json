@@ -87,12 +87,48 @@
         2.52,
         2.6
       ]
+    },
+    "E4": {
+      "source": "Hantek square 1 kHz, duty 50%, 2 Vpp, +1.5 V offset",
+      "frequency_hz": 1000,
+      "frequency_unit_clarification": "operator corrected initial 1 Hz to 1 kHz and confirmed connection/reset",
+      "vmin_v": 0.44,
+      "vmax_v": 2.56
+    },
+    "sine_repeats_preconnection": {
+      "frequency_hz_range": [
+        499,
+        501
+      ],
+      "vmin_v_range": [
+        0.44,
+        0.48
+      ],
+      "vmax_v_range": [
+        2.52,
+        2.56
+      ],
+      "connection_ready": "confirmed by operator"
     }
   },
-  "state": "E1/E2/E3 recorded; digital integrity pass; preparing E4 square 1 kHz; task8 incomplete",
+  "state": "E1-E4 and sine500 repeats at 10/50/100 kSPS recorded; LCD and G2 pending; task8 incomplete",
   "implementation_git_commit": "4730acca01a8d0d587ff255257eb650440a691cf",
   "operator_decisions": {
     "DC_accuracy": "accept observed bias and noise as demonstration limitations; do not pursue precision; no calibration applied",
     "ground_check": "operator reports common grounds; differential VSSA measurement not performed"
+  },
+  "rate_repeat_builds": {
+    "50000": {
+      "sha256": "E585E5896B2FAC79E809902261EF0CD31C6E6129BA202555FFFF8207E33F4818",
+      "state": "CLI write/verify completed; operator RESET and PG13 measured; buffer read and analysed",
+      "PG13_hz": 24.37,
+      "Fs_measured_hz": 49909.76
+    },
+    "100000": {
+      "sha256": "34CD9651EAB188CDE3C798656D3CDC0D9266C952D6A96F05D73871B6827758EF",
+      "state": "CLI write/verify completed; operator RESET and PG13 measured; buffer read and analysed",
+      "PG13_hz": 48.73,
+      "Fs_measured_hz": 99799.04
+    }
   }
 }
