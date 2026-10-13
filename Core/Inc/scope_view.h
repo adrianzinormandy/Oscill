@@ -32,6 +32,8 @@ typedef struct {
  uint32_t button_presses,algorithm_checks,algorithm_failures;
  uint32_t rendered_trigger_mode,rendered_trigger_waiting,triggered_frames;
  uint32_t render_pending,render_slice_max_cycles;
+ uint32_t frontbuffer_address,backbuffer_address,swap_requests,swap_completed;
+ uint32_t reload_start_tick_ms,reload_timeouts,reload_max_tick_ms;
 } SV_Diagnostic;
 extern volatile SV_Diagnostic g_scope_diagnostic;
 void SV_Init(void);

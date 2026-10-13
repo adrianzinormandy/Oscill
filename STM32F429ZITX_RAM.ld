@@ -47,6 +47,7 @@ MEMORY
 {
   CCMRAM    (xrw)    : ORIGIN = 0x10000000,   LENGTH = 64K
   RAM    (xrw)    : ORIGIN = 0x20000000,   LENGTH = 192K
+  SDRAM    (rw)     : ORIGIN = 0xD0000000, LENGTH = 8M
   FLASH    (rx)    : ORIGIN = 0x8000000,   LENGTH = 2048K
 }
 
@@ -196,6 +197,24 @@ SECTIONS
     . = . + _Min_Stack_Size;
     . = ALIGN(8);
   } >RAM
+
+  /* RGB565 double buffering: reserve both fixed DMA/LTDC surfaces.
+   * NOLOAD: SDRAM is unavailable in Reset_Handler, so clear after FMC init.
+   * RM0090 3.3/16.7.22; each 240x320x2-byte surface is 1-Kbyte aligned. */
+  .sdram_frontbuffer 0xD0000000 (NOLOAD) :
+  {
+    __lcd_frontbuffer_start__ = .;
+    . += 153600;
+    __lcd_frontbuffer_end__ = .;
+  } >SDRAM
+  .sdram_backbuffer 0xD0040000 (NOLOAD) :
+  {
+    __lcd_backbuffer_start__ = .;
+    . += 153600;
+    __lcd_backbuffer_end__ = .;
+  } >SDRAM
+  ASSERT(__lcd_frontbuffer_end__ <= __lcd_backbuffer_start__, "LCD buffers overlap")
+  ASSERT(__lcd_backbuffer_end__ <= 0xD0100000, "LCD overlaps SDRAM test area")
 
   /* Remove information from the compiler libraries */
   /DISCARD/ :

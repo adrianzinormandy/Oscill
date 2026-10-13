@@ -4,7 +4,7 @@
 
 /* Software rotation only: physical LTDC remains RGB565, 240 x 320.
  * Logical 320 x 240 becomes upright when the board is turned 90 degrees CCW.
- * RM0090 16.7: preserve layer address, pitch, format and all timing registers. */
+ * RM0090 16.7: preserve pitch, format and timings; flip only CFBAR at blanking. */
 #define SV_WIDTH_PIXELS 320U
 #define SV_HEIGHT_PIXELS 240U
 #define SV_LEFT_PIXELS 8U
@@ -18,9 +18,16 @@
 #define SV_WHITE_RGB565 0xFFFFU
 #define SV_AMBER_RGB565 0xFD20U
 #define SV_Q16_ONE 65536U
+#define SV_RELOAD_TIMEOUT_TICK_MS 100U
 #define SV_OPT __attribute__((optimize("O2")))
 _Static_assert(SV_WINDOW_SAMPLES < AC_BLOCK_SAMPLES, "Window must fit SRAM snapshot");
 _Static_assert(SV_PRETRIGGER_SAMPLES < SV_WINDOW_INTERVALS_SAMPLES, "Invalid pretrigger");
+_Static_assert(LCD_FRAMEBUFFER_ADDRESS + LCD_FRAMEBUFFER_BYTES <= LCD_BACKBUFFER_ADDRESS,
+    "Framebuffers overlap");
+_Static_assert(LCD_BACKBUFFER_ADDRESS + LCD_FRAMEBUFFER_BYTES <= LCD_SDRAM_TEST_ADDRESS,
+    "Backbuffer overlaps SDRAM diagnostic area");
+extern LTDC_HandleTypeDef hltdc;
+static const DG_Surface *draw_surface;
 volatile SV_Diagnostic g_scope_diagnostic;
 /* Frozen columns belong to main, and survive later ADC snapshots during R2M. */
 static uint16_t column_min[SV_COLUMNS_PIXELS], column_max[SV_COLUMNS_PIXELS];
@@ -36,7 +43,7 @@ static SV_OPT uint32_t framebuffer_index(uint32_t x, uint32_t y)
 static SV_OPT void pixel(uint32_t x, uint32_t y, uint16_t color)
 {
     if (x < SV_WIDTH_PIXELS && y < SV_HEIGHT_PIXELS)
-        ((volatile uint16_t *)LCD_FRAMEBUFFER_ADDRESS)[framebuffer_index(x, y)] = color;
+        ((volatile uint16_t *)draw_surface->address)[framebuffer_index(x, y)] = color;
 }
 static SV_OPT uint32_t ordinate(uint32_t code)
 {
@@ -223,12 +230,19 @@ static SV_OPT void render_step(void)
             uint32_t cycles = DWT->CYCCNT - render_begin_cycles;
             /* Inclusive frame latency: ADC service/IRQs between slices included. */
             if (cycles > g_scope_diagnostic.render_max_cycles) g_scope_diagnostic.render_max_cycles = cycles;
-            g_scope_diagnostic.frames++;
-            g_adc_diagnostic.display_frames++;
-            if (have_trace && g_scope_diagnostic.rendered_trigger_mode && !g_scope_diagnostic.rendered_trigger_waiting)
-                g_scope_diagnostic.triggered_frames++;
-            render_phase = 0U;
-            g_scope_diagnostic.render_pending = 0U;
+            /* RM0090 16.7.6/16.7.22: publish a complete hidden frame. VBR is
+             * cleared only by hardware after reload. Do not reuse the old
+             * frontbuffer before that acknowledgement. No ISR or busy wait.
+             * Keep HAL's cached address consistent with the shadow setting. */
+            if (LTDC->SRCR & (LTDC_SRCR_VBR | LTDC_SRCR_IMR)) {
+                AC_Fail(AC_GRAPHICS); return;
+            }
+            LTDC_Layer1->CFBAR = draw_surface->address;
+            hltdc.LayerCfg[0].FBStartAdress = draw_surface->address;
+            LTDC->SRCR = LTDC_SRCR_VBR;
+            g_scope_diagnostic.swap_requests++;
+            g_scope_diagnostic.reload_start_tick_ms = HAL_GetTick();
+            render_phase = 5U;
         } else render_cursor = 0U;
     }
     uint32_t cycles = DWT->CYCCNT - begin;
@@ -290,12 +304,39 @@ void SV_Init(void)
     have_trace = match_seen = 0U;
     display_dirty = 1U;
     render_phase = render_cursor = render_label = 0U;
+    if (LTDC_Layer1->CFBAR != LCD_FRAMEBUFFER_ADDRESS) { AC_Fail(AC_CONFIG); return; }
+    draw_surface = &dg_backbuffer;
+    g_scope_diagnostic.frontbuffer_address = LCD_FRAMEBUFFER_ADDRESS;
+    g_scope_diagnostic.backbuffer_address = draw_surface->address;
 }
 uint32_t SV_IsIdle(void) { return !g_scope_diagnostic.clear_pending && !render_phase; }
-uint32_t SV_NeedsService(void) { return render_phase != 0U; }
+uint32_t SV_NeedsService(void) { return render_phase && render_phase < 5U; }
 SV_OPT void SV_Process(void)
 {
     uint32_t now = HAL_GetTick();
+    if (render_phase == 5U) {
+        uint32_t elapsed = now - g_scope_diagnostic.reload_start_tick_ms;
+        if (LTDC->SRCR & LTDC_SRCR_VBR) {
+            if (elapsed > SV_RELOAD_TIMEOUT_TICK_MS) {
+                g_scope_diagnostic.reload_timeouts++; AC_Fail(AC_GRAPHICS);
+            }
+            return;
+        }
+        if (LTDC_Layer1->CFBAR != draw_surface->address) { AC_Fail(AC_CONFIG); return; }
+        if (elapsed > g_scope_diagnostic.reload_max_tick_ms)
+            g_scope_diagnostic.reload_max_tick_ms = elapsed;
+        g_scope_diagnostic.frontbuffer_address = draw_surface->address;
+        draw_surface = draw_surface == &dg_backbuffer ? &dg_framebuffer : &dg_backbuffer;
+        g_scope_diagnostic.backbuffer_address = draw_surface->address;
+        g_scope_diagnostic.swap_completed++;
+        g_scope_diagnostic.frames++;
+        g_adc_diagnostic.display_frames++;
+        if (have_trace && g_scope_diagnostic.rendered_trigger_mode && !g_scope_diagnostic.rendered_trigger_waiting)
+            g_scope_diagnostic.triggered_frames++;
+        render_phase = 0U;
+        g_scope_diagnostic.render_pending = 0U;
+        return;
+    }
     /* Poll only outside a frozen frame: a press applies to the next frame. */
     if (!render_phase && !g_scope_diagnostic.clear_pending) poll_button(now);
     if (render_phase) { render_step(); return; }
@@ -344,7 +385,7 @@ SV_OPT void SV_Process(void)
     if (!display_dirty) return;
     g_scope_diagnostic.rendered_trigger_mode = g_scope_diagnostic.trigger_mode;
     g_scope_diagnostic.rendered_trigger_waiting = g_scope_diagnostic.trigger_waiting;
-    DG_Job fill = { .operation = DG_FILL, .dst = &dg_framebuffer,
+    DG_Job fill = { .operation = DG_FILL, .dst = draw_surface,
         .width = LCD_WIDTH_PIXELS, .height = LCD_HEIGHT_PIXELS, .color = 0U };
     if (DG_Start(&fill, 1U) != DG_OK) { AC_Fail(AC_GRAPHICS); return; }
     display_dirty = 0U;

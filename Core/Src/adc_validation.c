@@ -68,7 +68,13 @@ static void check_existing_config(void)
     memcmp((void *)&g_adc_diagnostic.ltdc_before,(void *)&g_adc_diagnostic.ltdc_after,
       5U*sizeof(uint32_t)) ||
     memcmp((void *)&g_adc_diagnostic.ltdc_before.l1cr,(void *)&g_adc_diagnostic.ltdc_after.l1cr,
-      10U*sizeof(uint32_t)) ||
+      6U*sizeof(uint32_t)) ||
+    /* Only CFBAR may alternate: completed frames are published at blanking.
+     * RM0090 16.7.6/16.7.22; timing, format, pitch and enables stay checked. */
+    (g_adc_diagnostic.ltdc_after.l1cfbar!=LCD_FRAMEBUFFER_ADDRESS &&
+     g_adc_diagnostic.ltdc_after.l1cfbar!=LCD_BACKBUFFER_ADDRESS) ||
+    memcmp((void *)&g_adc_diagnostic.ltdc_before.l1cfblr,(void *)&g_adc_diagnostic.ltdc_after.l1cfblr,
+      3U*sizeof(uint32_t)) ||
     g_adc_diagnostic.ltdc_before.ier!=g_adc_diagnostic.ltdc_after.ier ||
     g_adc_diagnostic.pllsai_before!=g_adc_diagnostic.pllsai_after ||
     g_adc_diagnostic.dckcfgr_before!=g_adc_diagnostic.dckcfgr_after ||

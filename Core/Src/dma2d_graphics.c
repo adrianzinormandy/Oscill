@@ -3,6 +3,7 @@
 extern DMA2D_HandleTypeDef hdma2d;
 volatile DG_Diagnostic g_dma2d_diagnostic __attribute__((section(".bss.dma2d_diagnostic"),aligned(8)));
 const DG_Surface dg_framebuffer={0xD0000000U,240U,320U,DMA2D_OUTPUT_RGB565};
+const DG_Surface dg_backbuffer={LCD_BACKBUFFER_ADDRESS,240U,320U,DMA2D_OUTPUT_RGB565};
 const DG_Surface dg_scratch_a={0xD0200000U,240U,320U,DMA2D_OUTPUT_RGB565};
 const DG_Surface dg_scratch_b={0xD0240000U,240U,320U,DMA2D_OUTPUT_RGB565};
 const DG_Surface dg_argb_source={0xD0300000U,64U,64U,DMA2D_OUTPUT_ARGB8888};
@@ -56,8 +57,8 @@ static uint32_t surface_valid(const DG_Surface *s)
 {
   /* Whitelist fixed DMA-accessible buffers. No CCM or arbitrary peripheral address. */
   if(s==NULL) return 0U;
-  const DG_Surface *all[]={&dg_framebuffer,&dg_scratch_a,&dg_scratch_b,&dg_argb_source,&dg_argb_destination};
-  for(uint32_t i=0U;i<5U;i++) if(s->address==all[i]->address&&s->width==all[i]->width
+  const DG_Surface *all[]={&dg_framebuffer,&dg_backbuffer,&dg_scratch_a,&dg_scratch_b,&dg_argb_source,&dg_argb_destination};
+  for(uint32_t i=0U;i<sizeof(all)/sizeof(all[0]);i++) if(s->address==all[i]->address&&s->width==all[i]->width
       &&s->height==all[i]->height&&s->format==all[i]->format) return 1U;
   return 0U;
 }

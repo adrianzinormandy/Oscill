@@ -48,7 +48,7 @@ typedef struct {
   DG_Benchmark benchmarks[DMA2D_BENCH_COUNT];
 } DG_Diagnostic;
 extern volatile DG_Diagnostic g_dma2d_diagnostic;
-extern const DG_Surface dg_framebuffer,dg_scratch_a,dg_scratch_b,dg_argb_source,dg_argb_destination;
+extern const DG_Surface dg_framebuffer,dg_backbuffer,dg_scratch_a,dg_scratch_b,dg_argb_source,dg_argb_destination;
 DG_Status DG_Init(void);
 DG_Status DG_Start(const DG_Job *job, uint32_t interrupt_mode);
 DG_Status DG_Wait(uint32_t timeout_ms);
