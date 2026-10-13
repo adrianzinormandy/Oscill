@@ -167,5 +167,11 @@ void AC_TestProcess(void)
   __DMB();g_scope_diagnostic.g2_complete=1U;AC_Checkpoint();
  }
 #endif
+#if ADC_CAPTURE_TEST_PHASE == 3U
+ /* Short rendering slices must run between IRQs, with AC_Process before each.
+  * Sleeping after every slice would stretch one frame over many DMA halves. */
+ if(!SV_NeedsService()) __WFI();
+#else
  __WFI();
+#endif
 }

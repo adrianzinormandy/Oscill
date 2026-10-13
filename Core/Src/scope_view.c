@@ -27,6 +27,7 @@ static uint16_t column_min[SV_COLUMNS_PIXELS], column_max[SV_COLUMNS_PIXELS];
 static uint32_t next_frame_tick_ms, last_match_tick_ms;
 static uint32_t have_trace, match_seen, display_dirty;
 static uint32_t button_raw, button_stable, button_change_tick_ms;
+static uint32_t render_phase, render_cursor, render_label, previous_ordinate, render_begin_cycles;
 
 static SV_OPT uint32_t framebuffer_index(uint32_t x, uint32_t y)
 {
@@ -155,49 +156,86 @@ static SV_OPT void text(uint32_t x, uint32_t y, const char *s, uint16_t color, u
         ++s;
     }
 }
-static SV_OPT void render(void)
+static SV_OPT void render_step(void)
 {
     uint32_t begin = DWT->CYCCNT;
-    for (uint32_t i = 0U; i <= 10U; ++i) {
-        uint32_t x = SV_LEFT_PIXELS + i * (SV_RIGHT_PIXELS - SV_LEFT_PIXELS) / 10U;
+    if (render_phase == 1U) {
+        uint32_t x = SV_LEFT_PIXELS + render_cursor * (SV_RIGHT_PIXELS - SV_LEFT_PIXELS) / 10U;
         for (uint32_t y = SV_TOP_PIXELS; y <= SV_BOTTOM_PIXELS; ++y) pixel(x, y, SV_GRAY_RGB565);
-    }
-    for (uint32_t i = 0U; i <= 8U; ++i) {
-        uint32_t y = SV_TOP_PIXELS + i * (SV_BOTTOM_PIXELS - SV_TOP_PIXELS) / 8U;
+        if (++render_cursor == 11U) { render_phase = 2U; render_cursor = 0U; }
+    } else if (render_phase == 2U) {
+        uint32_t y = SV_TOP_PIXELS + render_cursor * (SV_BOTTOM_PIXELS - SV_TOP_PIXELS) / 8U;
         for (uint32_t x = SV_LEFT_PIXELS; x <= SV_RIGHT_PIXELS; ++x) pixel(x, y, SV_GRAY_RGB565);
-    }
-    if (have_trace) {
-        uint32_t previous = ordinate((column_min[0] + column_max[0]) / 2U);
-        for (uint32_t x = 0U; x < SV_COLUMNS_PIXELS; ++x) {
+        if (++render_cursor == 9U) {
+            render_phase = 3U; render_cursor = 0U;
+            previous_ordinate = ordinate((column_min[0] + column_max[0]) / 2U);
+        }
+    } else if (render_phase == 3U) {
+        /* At most four trace columns per call, with ADC service between calls.
+         * Bounds limit even a full-height noisy column to a short SRAM-copy gap. */
+        uint32_t end = render_cursor + 4U;
+        if (end > SV_COLUMNS_PIXELS) end = SV_COLUMNS_PIXELS;
+        for (; have_trace && render_cursor < end; ++render_cursor) {
+            uint32_t x = render_cursor;
             uint32_t top = ordinate(column_max[x]), bottom = ordinate(column_min[x]);
             for (uint32_t y = top; y <= bottom; ++y) pixel(SV_LEFT_PIXELS + x, y, SV_GREEN_RGB565);
             uint32_t centre = ordinate((column_min[x] + column_max[x]) / 2U);
             if (x) {
-                uint32_t lo = centre < previous ? centre : previous, hi = centre > previous ? centre : previous;
+                uint32_t lo = centre < previous_ordinate ? centre : previous_ordinate;
+                uint32_t hi = centre > previous_ordinate ? centre : previous_ordinate;
                 for (uint32_t y = lo; y <= hi; ++y) pixel(SV_LEFT_PIXELS + x, y, SV_GREEN_RGB565);
             }
-            previous = centre;
+            previous_ordinate = centre;
         }
+        if (!have_trace || render_cursor == SV_COLUMNS_PIXELS) {
+            render_phase = 4U; render_cursor = 0U; render_label = 0U;
+            if (g_scope_diagnostic.rendered_trigger_mode) {
+                uint32_t tx = SV_LEFT_PIXELS + SV_PRETRIGGER_SAMPLES *
+                    (SV_RIGHT_PIXELS - SV_LEFT_PIXELS) / SV_WINDOW_INTERVALS_SAMPLES;
+                for (uint32_t d = 0U; d < 4U; ++d) pixel(tx, SV_TOP_PIXELS - 1U - d, SV_AMBER_RGB565);
+                for (uint32_t d = 0U; d < 4U; ++d)
+                    pixel(SV_LEFT_PIXELS - 1U - d, ordinate(SV_TRIGGER_LEVEL_CODE), SV_AMBER_RGB565);
+            }
+        }
+    } else if (render_phase == 4U) {
+        /* One glyph per call; status and sample columns are frozen for the frame. */
+        const char *label;
+        uint32_t x, y, scale;
+        uint16_t color;
+        if (render_label == 0U) {
+            label = "20US/DIV"; x = 8U; y = 5U; scale = 2U; color = SV_WHITE_RGB565;
+        } else if (render_label == 1U) {
+            label = g_scope_diagnostic.rendered_trigger_mode ? "TRIG RISE" : "TRIG OFF";
+            x = 188U; y = 5U; scale = 2U; color = SV_WHITE_RGB565;
+        } else if (render_label == 2U) {
+            label = "B1:TRIG"; x = 8U; y = 228U; scale = 1U; color = SV_WHITE_RGB565;
+        } else {
+            label = g_scope_diagnostic.rendered_trigger_mode ?
+                (g_scope_diagnostic.rendered_trigger_waiting ? "WAIT" : "RISE") : "";
+            x = 258U; y = 228U; scale = 1U; color = SV_AMBER_RGB565;
+        }
+        if (label[render_cursor]) {
+            char glyph[2] = { label[render_cursor], 0 };
+            text(x + render_cursor * 6U * scale, y, glyph, color, scale);
+            ++render_cursor;
+        } else if (++render_label == 4U) {
+            __DSB();
+            uint32_t cycles = DWT->CYCCNT - render_begin_cycles;
+            /* Inclusive frame latency: ADC service/IRQs between slices included. */
+            if (cycles > g_scope_diagnostic.render_max_cycles) g_scope_diagnostic.render_max_cycles = cycles;
+            g_scope_diagnostic.frames++;
+            g_adc_diagnostic.display_frames++;
+            if (have_trace && g_scope_diagnostic.rendered_trigger_mode && !g_scope_diagnostic.rendered_trigger_waiting)
+                g_scope_diagnostic.triggered_frames++;
+            render_phase = 0U;
+            g_scope_diagnostic.render_pending = 0U;
+        } else render_cursor = 0U;
     }
-    text(8U, 5U, "20US/DIV", SV_WHITE_RGB565, 2U);
-    text(188U, 5U, g_scope_diagnostic.rendered_trigger_mode ? "TRIG RISE" : "TRIG OFF", SV_WHITE_RGB565, 2U);
-    text(8U, 228U, "B1:TRIG", SV_WHITE_RGB565, 1U);
-    if (g_scope_diagnostic.rendered_trigger_mode) {
-        /* Level / time marker: crossing sits at 20% of the window, two divisions. */
-        uint32_t tx = SV_LEFT_PIXELS + SV_PRETRIGGER_SAMPLES *
-            (SV_RIGHT_PIXELS - SV_LEFT_PIXELS) / SV_WINDOW_INTERVALS_SAMPLES;
-        for (uint32_t d = 0U; d < 4U; ++d) pixel(tx, SV_TOP_PIXELS - 1U - d, SV_AMBER_RGB565);
-        for (uint32_t d = 0U; d < 4U; ++d) pixel(SV_LEFT_PIXELS - 1U - d, ordinate(SV_TRIGGER_LEVEL_CODE), SV_AMBER_RGB565);
-        text(258U, 228U, g_scope_diagnostic.rendered_trigger_waiting ? "WAIT" : "RISE", SV_AMBER_RGB565, 1U);
-    }
-    __DSB();
     uint32_t cycles = DWT->CYCCNT - begin;
-    if (cycles > g_scope_diagnostic.render_max_cycles) g_scope_diagnostic.render_max_cycles = cycles;
-    g_scope_diagnostic.frames++;
-    g_adc_diagnostic.display_frames++;
-    if (have_trace && g_scope_diagnostic.rendered_trigger_mode && !g_scope_diagnostic.rendered_trigger_waiting)
-        g_scope_diagnostic.triggered_frames++;
+    if (cycles > g_scope_diagnostic.render_slice_max_cycles)
+        g_scope_diagnostic.render_slice_max_cycles = cycles;
 }
+
 static void check(uint32_t condition)
 {
     g_scope_diagnostic.algorithm_checks++;
@@ -251,12 +289,16 @@ void SV_Init(void)
     button_raw = button_stable = (B1_GPIO_Port->IDR & B1_Pin) != 0U;
     have_trace = match_seen = 0U;
     display_dirty = 1U;
+    render_phase = render_cursor = render_label = 0U;
 }
-uint32_t SV_IsIdle(void) { return !g_scope_diagnostic.clear_pending; }
+uint32_t SV_IsIdle(void) { return !g_scope_diagnostic.clear_pending && !render_phase; }
+uint32_t SV_NeedsService(void) { return render_phase != 0U; }
 SV_OPT void SV_Process(void)
 {
     uint32_t now = HAL_GetTick();
-    poll_button(now);
+    /* Poll only outside a frozen frame: a press applies to the next frame. */
+    if (!render_phase && !g_scope_diagnostic.clear_pending) poll_button(now);
+    if (render_phase) { render_step(); return; }
     if (g_scope_diagnostic.clear_pending) {
         if (g_dma2d_diagnostic.state == LCD_STATE_FAIL || now - g_scope_diagnostic.clear_start_tick_ms > 100U)
             { AC_Fail(AC_GRAPHICS); return; }
@@ -264,7 +306,10 @@ SV_OPT void SV_Process(void)
         if (g_dma2d_diagnostic.async_inflight) return;
         if (DG_Wait(100U) != DG_OK) { AC_Fail(AC_GRAPHICS); return; }
         g_scope_diagnostic.clear_pending = 0U;
-        render();
+        render_phase = 1U; render_cursor = 0U;
+        render_begin_cycles = DWT->CYCCNT;
+        g_scope_diagnostic.render_pending = 1U;
+        render_step();
         return;
     }
     uint32_t waiting = g_scope_diagnostic.trigger_mode &&

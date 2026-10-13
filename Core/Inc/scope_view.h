@@ -31,9 +31,11 @@ typedef struct {
  uint32_t trigger_matches,trigger_misses,trigger_waiting,trigger_q16;
  uint32_t button_presses,algorithm_checks,algorithm_failures;
  uint32_t rendered_trigger_mode,rendered_trigger_waiting,triggered_frames;
+ uint32_t render_pending,render_slice_max_cycles;
 } SV_Diagnostic;
 extern volatile SV_Diagnostic g_scope_diagnostic;
 void SV_Init(void);
 void SV_Process(void);
 uint32_t SV_IsIdle(void);
+uint32_t SV_NeedsService(void);
 #endif
