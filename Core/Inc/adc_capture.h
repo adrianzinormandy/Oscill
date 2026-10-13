@@ -13,6 +13,11 @@
 /* Operator PG8 measurement from task 7; estimate, not a new measurement. */
 #define AC_SDCLK_ESTIMATE_HZ 81300000U
 #define AC_SAMPLE_TIME_CYCLES 56U
+/* Fast display: preserve RCC, shorten IN5 acquisition only for this rate.
+ * RM0090 13.5/13.13.5: 3 + 12 conversion cycles, low-impedance source required. */
+#define AC_FAST_RATE_HZ 500000U
+#define AC_FAST_SAMPLE_TIME_CYCLES 3U
+#define AC_DISPLAY_RATE_HZ AC_FAST_RATE_HZ
 #define AC_TEST_RATE_COUNT 4U
 /* 1: digital + static load; 2: physical checkpoint; 3: live LCD + 63 s G2.
  * Physical input is prepared and measured before reset/flash. */

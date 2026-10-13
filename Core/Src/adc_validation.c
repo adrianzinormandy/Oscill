@@ -103,7 +103,7 @@ void AC_TestRun(void)
 #elif ADC_CAPTURE_TEST_PHASE == 3U
  g_adc_diagnostic.stage=9U;
  SV_Init();
- if(AC_Start(100000U)!=AC_OK){AC_Fail(AC_CONFIG);AC_DiagnosticStop();}
+ if(AC_Start(AC_DISPLAY_RATE_HZ)!=AC_OK){AC_Fail(AC_CONFIG);AC_DiagnosticStop();}
  g_scope_diagnostic.start_tick_ms=HAL_GetTick();
  g_scope_diagnostic.progress_tick_ms=HAL_GetTick();
  return;
@@ -139,7 +139,7 @@ void AC_TestProcess(void)
    * same capture settings for live display; never retry an error automatically. */
   if(AC_Stop()!=AC_OK){AC_DiagnosticStop();}
   AC_TestResult *r=(AC_TestResult *)&g_adc_diagnostic.graphics_load;
-  AC_SaveResult(r);r->rate_target_hz=100000U;
+  AC_SaveResult(r);r->rate_target_hz=AC_DISPLAY_RATE_HZ;
   if(r->processed!=r->blocks||r->dropped||r->queue_overflow||r->stale||r->ambiguous||
      r->sequence_errors||!r->guard_ok||r->overrun||r->dma_errors) {
    AC_Fail(AC_SEQUENCE);AC_DiagnosticStop();
@@ -161,7 +161,7 @@ void AC_TestProcess(void)
   if(!g_scope_diagnostic.g2_frames||g_scope_diagnostic.g2_dma2d_transfers!=
      g_scope_diagnostic.g2_dma2d_completed){AC_Fail(AC_GRAPHICS);AC_DiagnosticStop();}
   g_adc_diagnostic.tests_passed++;g_adc_diagnostic.stage=10U;
-  if(AC_Start(100000U)!=AC_OK){AC_Fail(AC_CONFIG);AC_DiagnosticStop();}
+  if(AC_Start(AC_DISPLAY_RATE_HZ)!=AC_OK){AC_Fail(AC_CONFIG);AC_DiagnosticStop();}
   g_scope_diagnostic.progress_blocks=0U;g_scope_diagnostic.progress_tick_ms=HAL_GetTick();
   g_scope_diagnostic.frame_generation=0U;
   __DMB();g_scope_diagnostic.g2_complete=1U;AC_Checkpoint();

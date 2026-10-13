@@ -99,12 +99,15 @@ uint32_t AC_CheckGuards(void)
 AC_Error AC_Start(uint32_t target_hz)
 {
  if(g_adc_diagnostic.state==AC_FAIL || g_adc_diagnostic.capture_running ||
-   (target_hz!=1000U&&target_hz!=10000U&&target_hz!=50000U&&target_hz!=100000U)) return AC_CONFIG;
+   (target_hz!=1000U&&target_hz!=10000U&&target_hz!=50000U&&target_hz!=100000U&&
+    target_hz!=AC_FAST_RATE_HZ)) return AC_CONFIG;
+ uint32_t sample_cycles=target_hz==AC_FAST_RATE_HZ?
+    AC_FAST_SAMPLE_TIME_CYCLES:AC_SAMPLE_TIME_CYCLES;
  uint32_t period=(g_adc_diagnostic.timer_clock_hz+target_hz/2U)/target_hz;
  /* Conversion budget includes 2 ADCCLK trigger latency cycles: RM0090 13.5,
   * datasheet 6.3.21. Reject impossible settings rather than changing clocks. */
  if((uint64_t)period*g_adc_diagnostic.adc_clock_hz <=
-    (uint64_t)(AC_SAMPLE_TIME_CYCLES+12U+2U)*g_adc_diagnostic.timer_clock_hz) {
+    (uint64_t)(sample_cycles+12U+2U)*g_adc_diagnostic.timer_clock_hz) {
   AC_Fail(AC_CONFIG);return AC_CONFIG;
  }
  for(uint32_t i=0;i<AC_GUARD_WORDS;i++) {
@@ -125,6 +128,7 @@ AC_Error AC_Start(uint32_t target_hz)
  g_adc_diagnostic.irq_max_cycles=0;g_adc_diagnostic.snapshot_generation=0;
  g_adc_diagnostic.snapshot_samples=0;g_adc_diagnostic.stop_partial_samples=0;
  g_adc_diagnostic.sampling_rate_hz=g_adc_diagnostic.timer_clock_hz/period;
+ g_adc_diagnostic.sample_time_cycles=sample_cycles;
  g_adc_diagnostic.psc=0;g_adc_diagnostic.arr=period-1U;
  half_period_cycles=AC_BLOCK_SAMPLES*period*2U;
  /* RM0090 18.3.1,18.4.1-2/6/11-12: MMS reset while UG loads PSC/ARR.
@@ -133,10 +137,12 @@ AC_Error AC_Start(uint32_t target_hz)
  ADC1->CR2=0;TIM2->PSC=0;TIM2->ARR=period-1U;TIM2->CNT=0;
  TIM2->EGR=TIM_EGR_UG;TIM2->SR=0;TIM2->CR2=TIM_CR2_MMS_1;
  /* RM0090 13.3.2-4,13.5/6/8.1,13.13.2-6/9/17: independent, /2,
-  * 12-bit right aligned, one rank IN5, 56 cycles, no CONT/SWSTART.
+  * 12-bit right aligned, one rank IN5, 56 cycles in legacy tests;
+  * 3 cycles only for the fast display. No CONT/SWSTART; CCR clock unchanged.
   * ADC_CCR / SQR3: 13.13.16 / 13.13.11. */
  ADC123_COMMON->CCR=0;ADC1->CR1=ADC_CR1_OVRIE;
- ADC1->SMPR1=0;ADC1->SMPR2=3U<<ADC_SMPR2_SMP5_Pos;
+ ADC1->SMPR1=0;
+ ADC1->SMPR2=(target_hz==AC_FAST_RATE_HZ?0U:3U)<<ADC_SMPR2_SMP5_Pos;
  ADC1->SQR1=0;ADC1->SQR2=0;ADC1->SQR3=5U;
  ADC1->SR=0;
  /* RM0090 10.3.3/8/10/17,10.5: Stream0 Channel0, direct mode, halfwords,
