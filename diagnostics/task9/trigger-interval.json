@@ -1,0 +1,54 @@
+{
+  "code_version": "206b98a",
+  "host_interval_ms": 65136,
+  "start_blocks": 364278,
+  "end_blocks": 395917,
+  "delta_completed_blocks": 31639,
+  "samples_in_completed_blocks": 32398336,
+  "equivalent_seconds_from_previous_fs_range": [
+    65.04728618421053,
+    65.18129377832716
+  ],
+  "mode_start": 1,
+  "mode_end": 1,
+  "buttons_start": 7,
+  "buttons_end": 7,
+  "delta_matches": 985,
+  "delta_frames": 985,
+  "waiting": 0,
+  "reload_timeouts": 0,
+  "adc": {
+    "state": 1,
+    "blocks_completed": 395917,
+    "blocks_processed": 395917,
+    "blocks_dropped": 0,
+    "queue_overflow_count": 0,
+    "stale_block_count": 0,
+    "ambiguous_irq_count": 0,
+    "sequence_error_count": 0,
+    "adc_overrun_count": 0,
+    "dma_error_count": 0,
+    "guard_errors": 0,
+    "hardfault_count": 0,
+    "cfsr": 0,
+    "hfsr": 0
+  },
+  "graphics": {
+    "lcd": {
+      "spi_error_count": 0,
+      "spi_timeout_count": 0,
+      "fifo_underrun_count": 0,
+      "transfer_error_count": 0,
+      "sdram_error_count": 0,
+      "cfsr": 0,
+      "hfsr": 0
+    },
+    "dma2d": {
+      "dma2d_error_count": 0,
+      "timeout_count": 0,
+      "hardfault_count": 0,
+      "cfsr": 0,
+      "hfsr": 0
+    }
+  }
+}

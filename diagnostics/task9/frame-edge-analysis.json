@@ -1,0 +1,161 @@
+{
+  "trigger_marker_x": 68,
+  "column_edges_at_mid_code": [
+    {
+      "x_logical_pixels": 30,
+      "direction": "falling"
+    },
+    {
+      "x_logical_pixels": 69,
+      "direction": "rising"
+    },
+    {
+      "x_logical_pixels": 103,
+      "direction": "falling"
+    },
+    {
+      "x_logical_pixels": 144,
+      "direction": "rising"
+    },
+    {
+      "x_logical_pixels": 179,
+      "direction": "falling"
+    },
+    {
+      "x_logical_pixels": 220,
+      "direction": "rising"
+    },
+    {
+      "x_logical_pixels": 254,
+      "direction": "falling"
+    },
+    {
+      "x_logical_pixels": 296,
+      "direction": "rising"
+    }
+  ],
+  "samples_of_columns_near_marker": [
+    {
+      "x": 64,
+      "min": 297,
+      "max": 298
+    },
+    {
+      "x": 65,
+      "min": 297,
+      "max": 297
+    },
+    {
+      "x": 66,
+      "min": 297,
+      "max": 944
+    },
+    {
+      "x": 67,
+      "min": 944,
+      "max": 1634
+    },
+    {
+      "x": 68,
+      "min": 1634,
+      "max": 2324
+    },
+    {
+      "x": 69,
+      "min": 2324,
+      "max": 2389
+    },
+    {
+      "x": 70,
+      "min": 2389,
+      "max": 2392
+    },
+    {
+      "x": 71,
+      "min": 2392,
+      "max": 2395
+    },
+    {
+      "x": 72,
+      "min": 2395,
+      "max": 2397
+    },
+    {
+      "x": 73,
+      "min": 2397,
+      "max": 2399
+    },
+    {
+      "x": 74,
+      "min": 2399,
+      "max": 2401
+    },
+    {
+      "x": 75,
+      "min": 2399,
+      "max": 2401
+    }
+  ],
+  "green_y_extent_near_marker": [
+    {
+      "x": 64,
+      "y_min": 205,
+      "y_max": 205
+    },
+    {
+      "x": 65,
+      "y_min": 205,
+      "y_max": 205
+    },
+    {
+      "x": 66,
+      "y_min": 174,
+      "y_max": 205
+    },
+    {
+      "x": 67,
+      "y_min": 142,
+      "y_max": 189
+    },
+    {
+      "x": 68,
+      "y_min": 110,
+      "y_max": 158
+    },
+    {
+      "x": 69,
+      "y_min": 106,
+      "y_max": 126
+    },
+    {
+      "x": 70,
+      "y_min": 106,
+      "y_max": 108
+    },
+    {
+      "x": 71,
+      "y_min": 106,
+      "y_max": 106
+    },
+    {
+      "x": 72,
+      "y_min": 106,
+      "y_max": 106
+    },
+    {
+      "x": 73,
+      "y_min": 106,
+      "y_max": 106
+    },
+    {
+      "x": 74,
+      "y_min": 106,
+      "y_max": 106
+    },
+    {
+      "x": 75,
+      "y_min": 106,
+      "y_max": 106
+    }
+  ]
+}

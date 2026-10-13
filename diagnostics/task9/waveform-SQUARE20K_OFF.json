@@ -1,0 +1,21 @@
+{
+  "tag": "SQUARE20K_OFF",
+  "fs_measured_sps": [
+    497049.6,
+    498073.6
+  ],
+  "samples": 1024,
+  "min_code": 264,
+  "max_code": 2429,
+  "rising_edges": 41,
+  "falling_edges": 41,
+  "period_samples_mean": 24.875061595379293,
+  "period_samples_min": 24.002336305667086,
+  "period_samples_max": 25.007186401758304,
+  "frequency_from_measured_fs_hz": [
+    19981.84398837148,
+    20023.009715582793
+  ],
+  "display_window_intervals": 100,
+  "cycles_per_display_window": 4.020090547979815
+}
